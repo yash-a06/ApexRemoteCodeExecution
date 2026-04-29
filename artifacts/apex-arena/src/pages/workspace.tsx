@@ -152,7 +152,6 @@ export default function Workspace() {
       onSuccess: (data) => {
         setRunResult(data);
         setSubmitResult(null);
-        if (!isDesktop) setActiveTab("results");
       },
       onError: () => toast.error("Failed to run code")
     });
@@ -169,8 +168,6 @@ export default function Workspace() {
         setRunResult(null);
         if (isDesktop) {
           setActiveTab("submissions");
-        } else {
-          setActiveTab("results");
         }
         queryClient.invalidateQueries({ queryKey: getListUserSubmissionsQueryKey(userId) });
         queryClient.invalidateQueries({ queryKey: getGetProblemQueryKey(slug) });
@@ -246,13 +243,6 @@ export default function Workspace() {
             <Clock className="w-3.5 h-3.5 mr-1.5 sm:mr-2" /> Submissions
             {problemSubmissions.length > 0 && <span className="ml-1.5 sm:ml-2 py-0.5 px-1.5 bg-white/5 rounded text-[10px] leading-none">{problemSubmissions.length}</span>}
           </TabsTrigger>
-          {/* Results tab visible only on small screens, where there is no bottom panel */}
-          {!isDesktop && (
-            <TabsTrigger value="results" className="lg:hidden data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-4 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
-              <TerminalSquare className="w-3.5 h-3.5 mr-1.5 sm:mr-2" /> Output
-              {activeResult && <span className={cn("ml-1.5 w-1.5 h-1.5 rounded-full", activeResult.compileError || activeResult.runtimeError || (submitResult && submitResult.status !== "accepted") ? "bg-destructive" : "bg-success")} />}
-            </TabsTrigger>
-          )}
         </TabsList>
       </div>
       
@@ -401,18 +391,6 @@ export default function Workspace() {
         </ScrollArea>
       </TabsContent>
 
-      {!isDesktop && (
-        <TabsContent value="results" className="flex-1 overflow-hidden m-0 min-h-0">
-          <ResultsPanel
-            activeResult={activeResult}
-            submitResult={submitResult}
-            problem={problem}
-            resultTab={resultTab}
-            setResultTab={setResultTab}
-            onClose={() => { setRunResult(null); setSubmitResult(null); setActiveTab("description"); }}
-          />
-        </TabsContent>
-      )}
     </Tabs>
   );
 
@@ -529,15 +507,15 @@ export default function Workspace() {
                 {LeftPane}
               </ResizablePanel>
               <ResizableHandle className="w-1 bg-border/40 hover:bg-primary transition-colors hover:w-1.5 hover:-ml-0.5 z-10" />
-              <ResizablePanel defaultSize={60} minSize={30} className="flex flex-col bg-[#0b0d12]">
+              <ResizablePanel defaultSize={60} minSize={30} className="bg-[#0b0d12]">
                 <ResizablePanelGroup direction="vertical">
-                  <ResizablePanel defaultSize={activeResult ? 60 : 100} minSize={25}>
+                  <ResizablePanel defaultSize={activeResult ? 50 : 100} minSize={20}>
                     {EditorPane}
                   </ResizablePanel>
                   {activeResult && (
                     <>
                       <ResizableHandle className="h-1 bg-border/40 hover:bg-primary transition-colors hover:h-1.5 hover:-mt-0.5 z-10" />
-                      <ResizablePanel defaultSize={40} minSize={20}>
+                      <ResizablePanel defaultSize={50} minSize={25}>
                         <ResultsPanel
                           activeResult={activeResult}
                           submitResult={submitResult}
@@ -553,10 +531,38 @@ export default function Workspace() {
               </ResizablePanel>
             </ResizablePanelGroup>
           ) : (
-            <div className="h-full flex flex-col">
+            <div className="h-full flex flex-col relative">
               <div className="flex-1 min-h-0 basis-2/5">{LeftPane}</div>
               <div className="h-px bg-border/60 shrink-0" />
               <div className="flex-1 min-h-0 basis-3/5">{EditorPane}</div>
+
+              {/* Mobile bottom sheet for run/submit results */}
+              <AnimatePresence>
+                {activeResult && (
+                  <motion.div
+                    key="mobile-results-sheet"
+                    initial={{ y: "100%" }}
+                    animate={{ y: 0 }}
+                    exit={{ y: "100%" }}
+                    transition={{ type: "spring", damping: 32, stiffness: 320 }}
+                    className="absolute inset-x-0 bottom-0 z-30 bg-card border-t border-white/10 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] flex flex-col"
+                    style={{ height: "78%" }}
+                    data-testid="mobile-results-sheet"
+                  >
+                    <div className="h-1 w-10 bg-white/20 rounded-full mx-auto mt-2 shrink-0" />
+                    <div className="flex-1 min-h-0">
+                      <ResultsPanel
+                        activeResult={activeResult}
+                        submitResult={submitResult}
+                        problem={problem}
+                        resultTab={resultTab}
+                        setResultTab={setResultTab}
+                        onClose={() => { setRunResult(null); setSubmitResult(null); }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
         </div>
