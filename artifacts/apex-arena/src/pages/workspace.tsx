@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRoute, Link } from "wouter";
 import { PageWrapper } from "@/components/layout/page-wrapper";
 import { useUser } from "@/lib/user-context";
@@ -18,12 +18,56 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Play, Send, CheckCircle2, XCircle, Clock, Database, ChevronLeft, ChevronDown, Check, Lock, TerminalSquare, AlertCircle } from "lucide-react";
+import { Play, Send, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronDown, Check, Lock, TerminalSquare, AlertCircle, FlaskConical, Info, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : true
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return isDesktop;
+}
+
+function describeError(status: string | undefined): { title: string; hint: string } {
+  switch (status) {
+    case "compile_error":
+      return {
+        title: "Compile Error",
+        hint: "Your Apex code didn't parse correctly. Check braces, parentheses, semicolons and the class/trigger header.",
+      };
+    case "runtime_error":
+      return {
+        title: "Runtime Error",
+        hint: "Your code compiled but threw an exception while executing. Look at the message below to see what went wrong.",
+      };
+    case "limit_exceeded":
+      return {
+        title: "Governor Limit Exceeded",
+        hint: "Your code ran past a Salesforce governor limit. Move SOQL/DML out of loops and bulkify your logic.",
+      };
+    case "wrong_answer":
+      return {
+        title: "Wrong Answer",
+        hint: "Your code ran but didn't satisfy every requirement. Review the failing tests below.",
+      };
+    default:
+      return {
+        title: "Submission Failed",
+        hint: "Some tests didn't pass. See the details below.",
+      };
+  }
+}
 
 export default function Workspace() {
   const [, params] = useRoute("/problems/:slug");
@@ -31,6 +75,7 @@ export default function Workspace() {
   const { userId } = useUser();
   const queryClient = useQueryClient();
   const monaco = useMonaco();
+  const isDesktop = useIsDesktop();
 
   const { data: problem, isLoading: loadingProblem } = useGetProblem(slug, {
     query: { enabled: !!slug, queryKey: getGetProblemQueryKey(slug) }
@@ -66,12 +111,12 @@ export default function Workspace() {
           { token: 'type', foreground: '4ec9b0' },
         ],
         colors: {
-          'editor.background': '#0b0d12', // Match our --background roughly
+          'editor.background': '#0b0d12',
           'editor.foreground': '#d4d4d4',
-          'editor.lineHighlightBackground': '#00e5ff0a', // Cyan 5%
+          'editor.lineHighlightBackground': '#00e5ff0a',
           'editorLineNumber.foreground': '#5c6370',
           'editorIndentGuide.background': '#ffffff0a',
-          'editor.selectionBackground': '#00e5ff26', // Cyan 15%
+          'editor.selectionBackground': '#00e5ff26',
           'editorCursor.foreground': '#00e5ff',
         }
       });
@@ -107,6 +152,7 @@ export default function Workspace() {
       onSuccess: (data) => {
         setRunResult(data);
         setSubmitResult(null);
+        if (!isDesktop) setActiveTab("results");
       },
       onError: () => toast.error("Failed to run code")
     });
@@ -121,7 +167,11 @@ export default function Workspace() {
       onSuccess: (data) => {
         setSubmitResult(data);
         setRunResult(null);
-        setActiveTab("submissions");
+        if (isDesktop) {
+          setActiveTab("submissions");
+        } else {
+          setActiveTab("results");
+        }
         queryClient.invalidateQueries({ queryKey: getListUserSubmissionsQueryKey(userId) });
         queryClient.invalidateQueries({ queryKey: getGetProblemQueryKey(slug) });
         
@@ -130,7 +180,7 @@ export default function Workspace() {
           toast.success(
             <div className="flex flex-col gap-1">
               <span className="font-bold text-success font-display tracking-tight">Accepted!</span>
-              <span className="text-xs font-mono opacity-80">{data.passedCount}/{data.totalCount} tests passed in {data.results?.[0]?.executionTimeMs || 0}ms</span>
+              <span className="text-xs font-mono opacity-80">{data.passedCount}/{data.totalCount} tests passed</span>
             </div>, 
             {
               className: "border-success/30 bg-success/10",
@@ -139,7 +189,8 @@ export default function Workspace() {
           );
           setTimeout(() => setIsSuccessCelebration(false), 2000);
         } else {
-          toast.error("Submission failed. Check test results.", {
+          const { title } = describeError(data.status);
+          toast.error(`${title} — ${data.passedCount}/${data.totalCount} passed`, {
             className: "border-destructive/30 bg-destructive/10"
           });
         }
@@ -157,7 +208,19 @@ export default function Workspace() {
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [code, slug]); // Re-bind when deps change to capture current state
+  }, [code, slug]);
+
+  const activeResult = submitResult || runResult;
+  const isRunning = runCodeMut.isPending || submitMut.isPending;
+
+  // Map results back to test specs by name for the Tests tab
+  const testStatusByName = useMemo(() => {
+    const map = new Map<string, { passed: boolean; message: string; executionTimeMs: number }>();
+    activeResult?.results?.forEach((r: any) => {
+      if (!r.hidden && r.name) map.set(r.name, r);
+    });
+    return map;
+  }, [activeResult]);
 
   if (loadingProblem) {
     return <PageWrapper className="p-4"><Skeleton className="h-full w-full rounded-xl bg-card border-white/5" /></PageWrapper>;
@@ -167,22 +230,241 @@ export default function Workspace() {
     return <PageWrapper className="p-4 text-center py-20 font-display text-2xl text-muted-foreground">Problem not found</PageWrapper>;
   }
 
-  const activeResult = submitResult || runResult;
-  const isRunning = runCodeMut.isPending || submitMut.isPending;
+  // ---------- Reusable panes ----------
+  const LeftPane = (
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col bg-card/30 min-h-0">
+      <div className="border-b border-white/5 shrink-0 px-1 sm:px-2 bg-secondary/20 overflow-x-auto">
+        <TabsList className="bg-transparent border-0 h-10 w-max justify-start gap-1 sm:gap-2">
+          <TabsTrigger value="description" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-4 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
+            <TerminalSquare className="w-3.5 h-3.5 mr-1.5 sm:mr-2" /> Description
+          </TabsTrigger>
+          <TabsTrigger value="tests" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-4 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
+            <FlaskConical className="w-3.5 h-3.5 mr-1.5 sm:mr-2" /> Tests
+            <span className="ml-1.5 sm:ml-2 py-0.5 px-1.5 bg-white/5 rounded text-[10px] leading-none">{problem.sampleTests.length + (problem.hiddenTestCount > 0 ? `+${problem.hiddenTestCount}` : "")}</span>
+          </TabsTrigger>
+          <TabsTrigger value="submissions" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-4 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
+            <Clock className="w-3.5 h-3.5 mr-1.5 sm:mr-2" /> Submissions
+            {problemSubmissions.length > 0 && <span className="ml-1.5 sm:ml-2 py-0.5 px-1.5 bg-white/5 rounded text-[10px] leading-none">{problemSubmissions.length}</span>}
+          </TabsTrigger>
+          {/* Results tab visible only on small screens, where there is no bottom panel */}
+          {!isDesktop && (
+            <TabsTrigger value="results" className="lg:hidden data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-4 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
+              <TerminalSquare className="w-3.5 h-3.5 mr-1.5 sm:mr-2" /> Output
+              {activeResult && <span className={cn("ml-1.5 w-1.5 h-1.5 rounded-full", activeResult.compileError || activeResult.runtimeError || (submitResult && submitResult.status !== "accepted") ? "bg-destructive" : "bg-success")} />}
+            </TabsTrigger>
+          )}
+        </TabsList>
+      </div>
+      
+      <TabsContent value="description" className="flex-1 overflow-hidden m-0 min-h-0">
+        <ScrollArea className="h-full px-4 sm:px-6 py-6">
+          <div className="prose prose-invert prose-sm max-w-none prose-pre:bg-[#0d1117] prose-pre:border prose-pre:border-white/5 prose-code:text-primary prose-a:text-primary">
+            <ReactMarkdown>{problem.statement}</ReactMarkdown>
+          </div>
+
+          {problem.hints && problem.hints.length > 0 && (
+            <div className="mt-10 space-y-2 not-prose mb-10">
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground border-b border-white/10 pb-2 mb-4 flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-warning" /> Hints
+              </h3>
+              {problem.hints.map((hint, i) => (
+                <Collapsible key={i}>
+                  <CollapsibleTrigger className="flex w-full items-center justify-between bg-secondary/30 hover:bg-secondary/50 p-3 rounded-lg border border-white/5 text-sm font-medium transition-colors group">
+                    <span className="font-mono text-muted-foreground group-hover:text-foreground transition-colors">Hint {i + 1}</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground group-data-[state=open]:rotate-180 transition-transform" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="p-4 text-sm text-muted-foreground bg-secondary/10 border-x border-b border-white/5 rounded-b-lg -mt-1 pt-5 leading-relaxed">
+                    {hint}
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </TabsContent>
+
+      <TabsContent value="tests" className="flex-1 overflow-hidden m-0 min-h-0">
+        <ScrollArea className="h-full px-4 sm:px-6 py-6">
+          <div className="space-y-3">
+            <div className="text-xs text-muted-foreground font-mono leading-relaxed mb-4">
+              These checks run against your code. Visible tests show full failure details — hidden tests count toward your score on submit.
+            </div>
+            {problem.sampleTests.map((t, i) => {
+              const r = testStatusByName.get(t.name);
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  className={cn(
+                    "rounded-lg border p-4",
+                    !r ? "bg-secondary/20 border-white/5" :
+                    r.passed ? "bg-success/5 border-success/20" :
+                    "bg-destructive/5 border-destructive/20"
+                  )}
+                  data-testid={`test-case-${i}`}
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2 font-semibold text-sm font-mono text-foreground min-w-0">
+                      {!r ? (
+                        <span className="w-4 h-4 rounded-full border border-white/20 shrink-0" />
+                      ) : r.passed ? (
+                        <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-destructive shrink-0" />
+                      )}
+                      <span className="break-words">{t.name}</span>
+                    </div>
+                    {r && (
+                      <span className="text-[10px] font-mono text-muted-foreground bg-black/30 px-2 py-0.5 rounded shrink-0">{r.executionTimeMs}ms</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground leading-relaxed pl-6 mb-2">
+                    {t.description}
+                  </div>
+                  {r && !r.passed && (
+                    <div className="mt-3 ml-6">
+                      <div className="text-[10px] font-semibold uppercase tracking-widest text-destructive mb-1.5 flex items-center gap-1.5">
+                        <AlertCircle className="w-3 h-3" /> Why it failed
+                      </div>
+                      <div className="font-mono text-xs text-destructive/90 bg-destructive/10 p-3 rounded border border-destructive/10 whitespace-pre-wrap break-words leading-relaxed">
+                        {r.message}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+            {problem.hiddenTestCount > 0 && (
+              <div className="bg-primary/5 border border-primary/20 border-dashed rounded-lg p-4 flex items-center gap-3 text-sm text-primary font-medium">
+                <Lock className="w-4 h-4 shrink-0" />
+                <span>+{problem.hiddenTestCount} hidden tests evaluated on submit. Bulkify your code to pass them.</span>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </TabsContent>
+
+      <TabsContent value="submissions" className="flex-1 overflow-hidden m-0 min-h-0">
+        <ScrollArea className="h-full p-4">
+          {loadingSubmissions ? (
+            <div className="space-y-3">
+              <Skeleton className="h-16 w-full rounded-lg bg-secondary/50" />
+              <Skeleton className="h-16 w-full rounded-lg bg-secondary/50" />
+            </div>
+          ) : problemSubmissions.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <div className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center mx-auto mb-4 border border-white/5">
+                <Clock className="w-5 h-5 opacity-50" />
+              </div>
+              <p className="font-display font-medium text-lg text-foreground mb-1">No submissions yet</p>
+              <p className="text-sm">Write your solution and hit submit.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {problemSubmissions.map((s, i) => (
+                <motion.div 
+                  key={s.id} 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="flex items-center justify-between p-4 rounded-lg border border-white/5 bg-card hover:bg-secondary/40 transition-colors gap-3"
+                  data-testid={`submission-${i}`}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {s.status === "accepted" ? (
+                        <span className="font-bold font-mono text-success text-sm flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4" /> Accepted
+                        </span>
+                      ) : (
+                        <span className="font-bold font-mono text-destructive text-sm flex items-center gap-1.5">
+                          <XCircle className="w-4 h-4" /> {s.status.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs font-mono text-muted-foreground">
+                      {new Date(s.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-mono font-bold text-foreground">
+                      {s.passedCount} <span className="text-muted-foreground font-normal">/ {s.totalCount}</span>
+                    </div>
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Tests Passed</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </TabsContent>
+
+      {!isDesktop && (
+        <TabsContent value="results" className="flex-1 overflow-hidden m-0 min-h-0">
+          <ResultsPanel
+            activeResult={activeResult}
+            submitResult={submitResult}
+            problem={problem}
+            resultTab={resultTab}
+            setResultTab={setResultTab}
+            onClose={() => { setRunResult(null); setSubmitResult(null); setActiveTab("description"); }}
+          />
+        </TabsContent>
+      )}
+    </Tabs>
+  );
+
+  const EditorPane = (
+    <div className="h-full flex flex-col bg-[#0b0d12] min-h-0">
+      <div className="h-9 bg-[#0b0d12] flex items-center px-3 sm:px-4 shrink-0 border-b border-white/5">
+        <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-t-md border-t border-x border-white/10 -mb-[1px] relative z-10 h-[calc(100%+1px)]">
+          <div className="w-2 h-2 rounded-full bg-primary/80 shadow-[0_0_5px_hsl(var(--primary))]"></div>
+          <span className="text-xs font-mono text-foreground font-medium">Solution.cls</span>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Badge variant="outline" className="text-[9px] uppercase tracking-widest font-mono border-white/10 text-muted-foreground bg-transparent px-1.5 py-0 rounded">Apex</Badge>
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 relative">
+        <Editor
+          height="100%"
+          language="java"
+          theme="apex-arena-dark"
+          value={code}
+          onChange={handleCodeChange}
+          options={{
+            minimap: { enabled: false },
+            fontSize: 14,
+            fontFamily: "var(--font-mono)",
+            fontLigatures: true,
+            padding: { top: 16, bottom: 16 },
+            scrollBeyondLastLine: false,
+            roundedSelection: false,
+            renderLineHighlight: 'all',
+            smoothScrolling: true,
+            cursorSmoothCaretAnimation: 'on',
+            scrollbar: { useShadows: false, verticalScrollbarSize: 8, horizontalScrollbarSize: 8 }
+          }}
+        />
+      </div>
+    </div>
+  );
 
   return (
-    <PageWrapper className="h-screen max-h-screen overflow-hidden bg-background">
-      <div className="h-full flex flex-col pt-[57px]"> {/* Account for sticky navbar */}
+    <PageWrapper className="flex-1 flex flex-col overflow-hidden bg-background h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)]">
+      <div className="h-full flex flex-col min-h-0">
         
         {/* Editor Toolbar */}
-        <div className="h-12 border-b border-white/5 bg-secondary/30 backdrop-blur-md flex items-center px-4 justify-between shrink-0">
-          <div className="flex items-center gap-4">
-            <Link href="/problems" className="text-muted-foreground hover:text-foreground transition-colors p-1.5 hover:bg-white/5 rounded-md">
+        <div className="min-h-12 border-b border-white/5 bg-secondary/30 backdrop-blur-md flex items-center px-2 sm:px-4 justify-between shrink-0 gap-2 py-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <Link href="/problems" className="text-muted-foreground hover:text-foreground transition-colors p-1.5 hover:bg-white/5 rounded-md shrink-0">
               <ChevronLeft className="w-4 h-4" />
             </Link>
-            <div className="font-semibold font-display tracking-tight text-lg">{problem.title}</div>
+            <div className="font-semibold font-display tracking-tight text-sm sm:text-lg truncate min-w-0">{problem.title}</div>
             <div className={cn(
-              "text-[10px] uppercase tracking-widest font-mono font-bold flex items-center gap-1.5 px-2 py-0.5 rounded-full border",
+              "shrink-0 text-[10px] uppercase tracking-widest font-mono font-bold flex items-center gap-1.5 px-2 py-0.5 rounded-full border",
               problem.difficulty === "easy" ? "text-success border-success/20 bg-success/5" : 
               problem.difficulty === "medium" ? "text-warning border-warning/20 bg-warning/5" : 
               "text-destructive border-destructive/20 bg-destructive/5"
@@ -192,14 +474,14 @@ export default function Workspace() {
                 problem.difficulty === "medium" ? "bg-warning shadow-[0_0_5px_hsl(var(--warning))]" : 
                 "bg-destructive shadow-[0_0_5px_hsl(var(--destructive))]"
               )}></span>
-              {problem.difficulty}
+              <span className="hidden xs:inline">{problem.difficulty}</span>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 mr-4 opacity-50">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="hidden xl:flex items-center gap-2 mr-4 opacity-50">
               <kbd className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] font-mono">⌘</kbd>
-              <span className="text-[10px] font-mono">+</span >
+              <span className="text-[10px] font-mono">+</span>
               <kbd className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] font-mono">Enter</kbd>
               <span className="text-[10px] uppercase tracking-widest ml-1">to run</span>
             </div>
@@ -207,13 +489,13 @@ export default function Workspace() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-8 gap-2 bg-secondary/50 border-white/10 hover:bg-secondary hover:border-white/20 font-semibold" 
+              className="h-8 gap-1.5 sm:gap-2 px-2.5 sm:px-3 bg-secondary/50 border-white/10 hover:bg-secondary hover:border-white/20 font-semibold" 
               onClick={handleRun}
               disabled={isRunning}
               data-testid="btn-run"
             >
               {runCodeMut.isPending ? <Clock className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 text-primary" />}
-              Run
+              <span className="hidden xs:inline">Run</span>
             </Button>
             
             <div className="relative">
@@ -227,313 +509,242 @@ export default function Workspace() {
               )}
               <Button 
                 size="sm" 
-                className="h-8 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-[0_0_15px_hsl(var(--primary)/0.2)] relative z-10" 
+                className="h-8 gap-1.5 sm:gap-2 px-2.5 sm:px-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-[0_0_15px_hsl(var(--primary)/0.2)] relative z-10" 
                 onClick={handleSubmit}
                 disabled={isRunning}
                 data-testid="btn-submit"
               >
                 {submitMut.isPending ? <Clock className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                Submit
+                <span className="hidden xs:inline">Submit</span>
               </Button>
             </div>
           </div>
         </div>
 
-        <ResizablePanelGroup direction="horizontal" className="flex-1 overflow-hidden">
-          {/* Left Panel: Description / Submissions */}
-          <ResizablePanel defaultSize={40} minSize={30}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col bg-card/30">
-              <div className="border-b border-white/5 shrink-0 px-2 bg-secondary/20">
-                <TabsList className="bg-transparent border-0 h-10 w-full justify-start gap-2">
-                  <TabsTrigger value="description" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-4 h-full text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
-                    <TerminalSquare className="w-3.5 h-3.5 mr-2" /> Description
-                  </TabsTrigger>
-                  <TabsTrigger value="submissions" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-4 h-full text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
-                    <Clock className="w-3.5 h-3.5 mr-2" /> Submissions
-                    {problemSubmissions.length > 0 && <span className="ml-2 py-0.5 px-1.5 bg-white/5 rounded text-[10px] leading-none">{problemSubmissions.length}</span>}
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-              
-              <TabsContent value="description" className="flex-1 overflow-hidden m-0">
-                <ScrollArea className="h-full px-6 py-6 custom-scrollbar">
-                  <div className="prose prose-invert prose-sm max-w-none prose-pre:bg-[#0d1117] prose-pre:border prose-pre:border-white/5 prose-code:text-primary prose-a:text-primary">
-                    <ReactMarkdown>{problem.statement}</ReactMarkdown>
-                  </div>
-                  
-                  <div className="mt-10 space-y-4 not-prose">
-                    <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground border-b border-white/10 pb-2">Sample Tests</h3>
-                    {problem.sampleTests.map((t, i) => (
-                      <div key={i} className="bg-secondary/30 border border-white/5 rounded-lg p-4 font-mono">
-                        <div className="font-semibold text-sm mb-2 text-foreground">{t.name}</div>
-                        <div className="text-xs text-muted-foreground leading-relaxed bg-black/20 p-3 rounded border border-white/5">{t.description}</div>
+        {/* Body: side-by-side on desktop, stacked on mobile */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {isDesktop ? (
+            <ResizablePanelGroup direction="horizontal">
+              <ResizablePanel defaultSize={40} minSize={25}>
+                {LeftPane}
+              </ResizablePanel>
+              <ResizableHandle className="w-1 bg-border/40 hover:bg-primary transition-colors hover:w-1.5 hover:-ml-0.5 z-10" />
+              <ResizablePanel defaultSize={60} minSize={30} className="flex flex-col bg-[#0b0d12]">
+                <ResizablePanelGroup direction="vertical">
+                  <ResizablePanel defaultSize={activeResult ? 60 : 100} minSize={25}>
+                    {EditorPane}
+                  </ResizablePanel>
+                  {activeResult && (
+                    <>
+                      <ResizableHandle className="h-1 bg-border/40 hover:bg-primary transition-colors hover:h-1.5 hover:-mt-0.5 z-10" />
+                      <ResizablePanel defaultSize={40} minSize={20}>
+                        <ResultsPanel
+                          activeResult={activeResult}
+                          submitResult={submitResult}
+                          problem={problem}
+                          resultTab={resultTab}
+                          setResultTab={setResultTab}
+                          onClose={() => { setRunResult(null); setSubmitResult(null); }}
+                        />
+                      </ResizablePanel>
+                    </>
+                  )}
+                </ResizablePanelGroup>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          ) : (
+            <div className="h-full flex flex-col">
+              <div className="flex-1 min-h-0 basis-2/5">{LeftPane}</div>
+              <div className="h-px bg-border/60 shrink-0" />
+              <div className="flex-1 min-h-0 basis-3/5">{EditorPane}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </PageWrapper>
+  );
+}
+
+function ResultsPanel({ activeResult, submitResult, problem, resultTab, setResultTab, onClose }: {
+  activeResult: any;
+  submitResult: any;
+  problem: any;
+  resultTab: string;
+  setResultTab: (s: string) => void;
+  onClose: () => void;
+}) {
+  if (!activeResult) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-6 bg-card/40">
+        <TerminalSquare className="w-10 h-10 opacity-20 mb-3" />
+        <p className="font-display font-medium text-foreground mb-1">No output yet</p>
+        <p className="text-xs font-mono">Hit Run to see test results, console logs, and governor limits.</p>
+      </div>
+    );
+  }
+
+  const errInfo = activeResult.compileError ? describeError("compile_error")
+    : activeResult.runtimeError ? describeError("runtime_error")
+    : submitResult ? describeError(submitResult.status)
+    : null;
+
+  // Index sample tests by name to enrich result rows with descriptions
+  const descByName = new Map<string, string>();
+  problem.sampleTests.forEach((t: any) => descByName.set(t.name, t.description));
+
+  return (
+    <Tabs value={resultTab} onValueChange={setResultTab} className="h-full flex flex-col bg-card/80 backdrop-blur min-h-0">
+      <div className="border-b border-white/5 shrink-0 px-2 flex justify-between items-center bg-secondary/30 h-10">
+        <TabsList className="bg-transparent border-0 h-full gap-1 sm:gap-2 overflow-x-auto">
+          <TabsTrigger value="tests" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-3 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
+            Test Results
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-3 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
+            Console
+          </TabsTrigger>
+          <TabsTrigger value="limits" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-3 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
+            Limits
+          </TabsTrigger>
+        </TabsList>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-white/10 rounded-full shrink-0" onClick={onClose} data-testid="btn-close-results">
+          <XCircle className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <TabsContent value="tests" className="flex-1 overflow-hidden m-0 min-h-0">
+        <ScrollArea className="h-full p-4">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeResult.status || (activeResult.compileError ? "compile" : activeResult.runtimeError ? "runtime" : "run")}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-4"
+            >
+              {/* Top-level status banner */}
+              {errInfo ? (
+                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex gap-3 items-start" data-testid="error-banner">
+                  <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <div className="font-display font-semibold text-destructive text-base mb-1">{errInfo.title}</div>
+                    <div className="text-xs text-destructive/80 leading-relaxed mb-3">{errInfo.hint}</div>
+                    {(activeResult.compileError || activeResult.runtimeError) && (
+                      <div className="font-mono text-xs text-destructive/90 bg-destructive/10 p-3 rounded border border-destructive/20 whitespace-pre-wrap break-words leading-relaxed">
+                        {activeResult.compileError || activeResult.runtimeError}
                       </div>
-                    ))}
-                    {problem.hiddenTestCount > 0 && (
-                      <div className="bg-primary/5 border border-primary/20 border-dashed rounded-lg p-4 flex items-center justify-center gap-2 text-sm text-primary font-medium">
-                        <Lock className="w-4 h-4" /> + {problem.hiddenTestCount} hidden tests evaluated on submit
+                    )}
+                    {submitResult && !activeResult.compileError && !activeResult.runtimeError && (
+                      <div className="text-xs font-mono text-muted-foreground">
+                        Passed <span className="text-foreground font-bold">{submitResult.passedCount}</span> of <span className="text-foreground font-bold">{submitResult.totalCount}</span> tests
                       </div>
                     )}
                   </div>
-
-                  {problem.hints && problem.hints.length > 0 && (
-                    <div className="mt-10 space-y-2 not-prose mb-10">
-                      <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground border-b border-white/10 pb-2 mb-4">Hints</h3>
-                      {problem.hints.map((hint, i) => (
-                        <Collapsible key={i}>
-                          <CollapsibleTrigger className="flex w-full items-center justify-between bg-secondary/30 hover:bg-secondary/50 p-3 rounded-lg border border-white/5 text-sm font-medium transition-colors group">
-                            <span className="font-mono text-muted-foreground group-hover:text-foreground transition-colors">Hint {i + 1}</span>
-                            <ChevronDown className="h-4 w-4 text-muted-foreground group-data-[state=open]:rotate-180 transition-transform" />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="p-4 text-sm text-muted-foreground bg-secondary/10 border-x border-b border-white/5 rounded-b-lg -mt-1 pt-5 leading-relaxed">
-                            {hint}
-                          </CollapsibleContent>
-                        </Collapsible>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="submissions" className="flex-1 overflow-hidden m-0">
-                <ScrollArea className="h-full p-4 custom-scrollbar">
-                  {loadingSubmissions ? (
-                    <div className="space-y-3">
-                      <Skeleton className="h-16 w-full rounded-lg bg-secondary/50" />
-                      <Skeleton className="h-16 w-full rounded-lg bg-secondary/50" />
-                    </div>
-                  ) : problemSubmissions.length === 0 ? (
-                    <div className="text-center py-20 text-muted-foreground">
-                      <div className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center mx-auto mb-4 border border-white/5">
-                        <Clock className="w-5 h-5 opacity-50" />
-                      </div>
-                      <p className="font-display font-medium text-lg text-foreground mb-1">No submissions yet</p>
-                      <p className="text-sm">Write your solution and hit submit.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {problemSubmissions.map((s, i) => (
-                        <motion.div 
-                          key={s.id} 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                          className="flex items-center justify-between p-4 rounded-lg border border-white/5 bg-card hover:bg-secondary/40 transition-colors"
-                        >
-                          <div>
-                            <div className="flex items-center gap-2 mb-1.5">
-                              {s.status === "accepted" ? (
-                                <span className="font-bold font-mono text-success text-sm flex items-center gap-1.5">
-                                  <CheckCircle2 className="w-4 h-4" /> Accepted
-                                </span>
-                              ) : (
-                                <span className="font-bold font-mono text-destructive text-sm flex items-center gap-1.5">
-                                  <XCircle className="w-4 h-4" /> {s.status.replace(/_/g, ' ')}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs font-mono text-muted-foreground">
-                              {new Date(s.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-mono font-bold text-foreground">
-                              {s.passedCount} <span className="text-muted-foreground font-normal">/ {s.totalCount}</span>
-                            </div>
-                            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Tests Passed</div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
-          </ResizablePanel>
-          
-          <ResizableHandle className="w-1 bg-border/40 hover:bg-primary transition-colors hover:w-1.5 hover:-ml-0.5 z-10" />
-
-          {/* Right Panel: Editor + Console */}
-          <ResizablePanel defaultSize={60} minSize={30} className="flex flex-col bg-[#0b0d12]">
-            {/* Editor File Tab */}
-            <div className="h-9 bg-[#0b0d12] flex items-center px-4 shrink-0 border-b border-white/5">
-              <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-t-md border-t border-x border-white/10 -mb-[1px] relative z-10 h-[calc(100%+1px)]">
-                <div className="w-2 h-2 rounded-full bg-primary/80 shadow-[0_0_5px_hsl(var(--primary))]"></div>
-                <span className="text-xs font-mono text-foreground font-medium">Solution.cls</span>
-              </div>
-              <div className="ml-auto flex items-center gap-2">
-                <Badge variant="outline" className="text-[9px] uppercase tracking-widest font-mono border-white/10 text-muted-foreground bg-transparent px-1.5 py-0 rounded">Apex</Badge>
-              </div>
-            </div>
-            
-            <ResizablePanelGroup direction="vertical">
-              <ResizablePanel defaultSize={activeResult ? 60 : 100} minSize={30}>
-                <div className="h-full relative">
-                  <Editor
-                    height="100%"
-                    language="java" // close enough to Apex
-                    theme="apex-arena-dark"
-                    value={code}
-                    onChange={handleCodeChange}
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 14,
-                      fontFamily: "var(--font-mono)",
-                      fontLigatures: true,
-                      padding: { top: 16, bottom: 16 },
-                      scrollBeyondLastLine: false,
-                      roundedSelection: false,
-                      renderLineHighlight: 'all',
-                      smoothScrolling: true,
-                      cursorSmoothCaretAnimation: 'on',
-                      scrollbar: { useShadows: false, verticalScrollbarSize: 8, horizontalScrollbarSize: 8 }
-                    }}
-                  />
                 </div>
-              </ResizablePanel>
-
-              {activeResult && (
-                <>
-                  <ResizableHandle className="h-1 bg-border/40 hover:bg-primary transition-colors hover:h-1.5 hover:-mt-0.5 z-10" />
-                  <ResizablePanel defaultSize={40} minSize={20}>
-                    <Tabs value={resultTab} onValueChange={setResultTab} className="h-full flex flex-col bg-card/80 backdrop-blur">
-                      <div className="border-b border-white/5 shrink-0 px-2 flex justify-between items-center bg-secondary/30 h-10">
-                        <TabsList className="bg-transparent border-0 h-full gap-2">
-                          <TabsTrigger value="tests" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-3 h-full text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
-                            Test Results
-                          </TabsTrigger>
-                          <TabsTrigger value="logs" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-3 h-full text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
-                            Console
-                          </TabsTrigger>
-                          <TabsTrigger value="limits" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-3 h-full text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
-                            Limits
-                          </TabsTrigger>
-                        </TabsList>
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-white/10 rounded-full" onClick={() => {setRunResult(null); setSubmitResult(null)}}>
-                          <XCircle className="w-4 h-4" />
-                        </Button>
-                      </div>
-
-                      <TabsContent value="tests" className="flex-1 overflow-hidden m-0">
-                        <ScrollArea className="h-full p-4 custom-scrollbar">
-                          <AnimatePresence mode="wait">
-                            <motion.div
-                              key={activeResult.status || "run"}
-                              initial={{ opacity: 0, y: 5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -5 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              {activeResult.compileError ? (
-                                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex gap-3 items-start">
-                                  <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                                  <div className="text-destructive font-mono text-sm whitespace-pre-wrap leading-relaxed">
-                                    {activeResult.compileError}
-                                  </div>
-                                </div>
-                              ) : activeResult.runtimeError ? (
-                                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex gap-3 items-start">
-                                  <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                                  <div className="text-destructive font-mono text-sm whitespace-pre-wrap leading-relaxed">
-                                    {activeResult.runtimeError}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="space-y-4">
-                                  <div className="text-lg font-display font-semibold flex items-center gap-2 px-1">
-                                    {submitResult?.status === "accepted" ? (
-                                      <span className="text-success flex items-center gap-2"><CheckCircle2 className="w-5 h-5"/> Accepted</span>
-                                    ) : submitResult ? (
-                                      <span className="text-destructive flex items-center gap-2"><XCircle className="w-5 h-5"/> {submitResult.status.replace(/_/g, ' ')}</span>
-                                    ) : (
-                                      <span>Execution Complete</span>
-                                    )}
-                                  </div>
-                                  <div className="grid gap-2">
-                                    {activeResult.results?.map((r: any, i: number) => (
-                                      <div key={i} className={cn(
-                                        "p-4 rounded-lg border",
-                                        r.passed ? "bg-success/5 border-success/20" : "bg-destructive/5 border-destructive/20 border-l-4 border-l-destructive"
-                                      )}>
-                                        <div className="flex items-center justify-between">
-                                          <div className="font-semibold flex items-center gap-2 font-mono text-sm text-foreground">
-                                            {r.passed ? <Check className="w-4 h-4 text-success" /> : <XCircle className="w-4 h-4 text-destructive" />}
-                                            {r.hidden ? (
-                                              <span className="flex items-center gap-1.5 opacity-70"><Lock className="w-3.5 h-3.5"/> Hidden Test #{i+1}</span>
-                                            ) : (
-                                              r.name
-                                            )}
-                                          </div>
-                                          <div className="text-xs font-mono text-muted-foreground bg-black/20 px-2 py-0.5 rounded">{r.executionTimeMs}ms</div>
-                                        </div>
-                                        {!r.passed && !r.hidden && (
-                                          <div className="mt-3">
-                                            <div className="text-xs font-semibold uppercase tracking-widest text-destructive mb-1 opacity-80">Error Output</div>
-                                            <div className="font-mono text-xs text-destructive/90 bg-destructive/10 p-3 rounded border border-destructive/10 whitespace-pre-wrap break-all leading-relaxed">
-                                              {r.message}
-                                            </div>
-                                          </div>
-                                        )}
-                                        {r.hidden && !r.passed && (
-                                          <div className="text-xs text-muted-foreground/70 mt-2 font-mono italic">Hidden test case failed. Output not shown.</div>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </motion.div>
-                          </AnimatePresence>
-                        </ScrollArea>
-                      </TabsContent>
-
-                      <TabsContent value="logs" className="flex-1 overflow-hidden m-0">
-                        <ScrollArea className="h-full p-4 bg-[#0b0d12] custom-scrollbar">
-                          <div className="font-mono text-[13px] leading-relaxed">
-                            {activeResult.debugLog?.length > 0 ? (
-                              activeResult.debugLog.map((log: string, i: number) => (
-                                <div key={i} className="mb-1 text-gray-300 hover:bg-white/5 px-2 -mx-2 rounded transition-colors break-all">
-                                  <span className="text-muted-foreground mr-2 select-none">{String(i+1).padStart(2, '0')}</span>
-                                  {log}
-                                </div>
-                              ))
-                            ) : (
-                              <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-                                <TerminalSquare className="w-8 h-8 opacity-20 mb-2" />
-                                <span className="font-mono text-sm opacity-60">No debug logs. Use System.debug() to print output.</span>
-                              </div>
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </TabsContent>
-
-                      <TabsContent value="limits" className="flex-1 overflow-hidden m-0">
-                        <ScrollArea className="h-full p-4 custom-scrollbar">
-                          <div className="grid sm:grid-cols-2 gap-4">
-                            {activeResult.governorLimits ? (
-                              <>
-                                <LimitBar label="SOQL Queries" value={activeResult.governorLimits.soqlQueries} max={100} />
-                                <LimitBar label="DML Statements" value={activeResult.governorLimits.dmlStatements} max={150} />
-                                <LimitBar label="CPU Time (ms)" value={activeResult.governorLimits.cpuTimeMs} max={10000} />
-                                <LimitBar label="Heap Size (MB)" value={(activeResult.governorLimits.heapSizeBytes / 1024 / 1024).toFixed(2)} max={6} />
-                              </>
-                            ) : (
-                              <div className="col-span-2 text-center py-10 text-muted-foreground font-mono text-sm">
-                                Limits data not available for this run.
-                              </div>
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </TabsContent>
-                    </Tabs>
-                  </ResizablePanel>
-                </>
+              ) : submitResult?.status === "accepted" ? (
+                <div className="bg-success/10 border border-success/30 rounded-lg p-4 flex gap-3 items-start">
+                  <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-display font-semibold text-success text-base mb-1">Accepted</div>
+                    <div className="text-xs text-success/80 leading-relaxed">
+                      All {submitResult.totalCount} tests passed. Nice work!
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex gap-3 items-center">
+                  <Info className="w-4 h-4 text-primary shrink-0" />
+                  <div className="text-xs text-foreground/80 leading-relaxed">
+                    Code executed. Review individual test results below.
+                  </div>
+                </div>
               )}
-            </ResizablePanelGroup>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
-    </PageWrapper>
+
+              {/* Per-test breakdown */}
+              {!activeResult.compileError && !activeResult.runtimeError && (
+                <div className="grid gap-2">
+                  {activeResult.results?.map((r: any, i: number) => (
+                    <div key={i} className={cn(
+                      "p-4 rounded-lg border",
+                      r.passed ? "bg-success/5 border-success/20" : "bg-destructive/5 border-destructive/20 border-l-4 border-l-destructive"
+                    )} data-testid={`result-${i}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="font-semibold flex items-center gap-2 font-mono text-sm text-foreground min-w-0">
+                          {r.passed ? <Check className="w-4 h-4 text-success shrink-0" /> : <XCircle className="w-4 h-4 text-destructive shrink-0" />}
+                          {r.hidden ? (
+                            <span className="flex items-center gap-1.5 opacity-70 truncate"><Lock className="w-3.5 h-3.5 shrink-0"/> Hidden Test #{i+1}</span>
+                          ) : (
+                            <span className="truncate">{r.name}</span>
+                          )}
+                        </div>
+                        <div className="text-xs font-mono text-muted-foreground bg-black/20 px-2 py-0.5 rounded shrink-0">{r.executionTimeMs}ms</div>
+                      </div>
+                      {!r.hidden && descByName.get(r.name) && (
+                        <div className="mt-2 ml-6 text-xs text-muted-foreground leading-relaxed">
+                          {descByName.get(r.name)}
+                        </div>
+                      )}
+                      {!r.passed && !r.hidden && (
+                        <div className="mt-3 ml-6">
+                          <div className="text-[10px] font-semibold uppercase tracking-widest text-destructive mb-1.5 opacity-90 flex items-center gap-1.5">
+                            <AlertCircle className="w-3 h-3" /> Failure Detail
+                          </div>
+                          <div className="font-mono text-xs text-destructive/90 bg-destructive/10 p-3 rounded border border-destructive/10 whitespace-pre-wrap break-words leading-relaxed">
+                            {r.message}
+                          </div>
+                        </div>
+                      )}
+                      {r.hidden && !r.passed && (
+                        <div className="text-xs text-muted-foreground/70 mt-2 ml-6 font-mono italic">Hidden test case failed. Output not shown — bulkify your code and check edge cases.</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </ScrollArea>
+      </TabsContent>
+
+      <TabsContent value="logs" className="flex-1 overflow-hidden m-0 min-h-0">
+        <ScrollArea className="h-full p-4 bg-[#0b0d12]">
+          <div className="font-mono text-[13px] leading-relaxed">
+            {activeResult.debugLog?.length > 0 ? (
+              activeResult.debugLog.map((log: string, i: number) => (
+                <div key={i} className="mb-1 text-gray-300 hover:bg-white/5 px-2 -mx-2 rounded transition-colors break-all">
+                  <span className="text-muted-foreground mr-2 select-none">{String(i+1).padStart(2, '0')}</span>
+                  {log}
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                <TerminalSquare className="w-8 h-8 opacity-20 mb-2" />
+                <span className="font-mono text-sm opacity-60 text-center px-4">No debug logs. Use System.debug() to print output.</span>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </TabsContent>
+
+      <TabsContent value="limits" className="flex-1 overflow-hidden m-0 min-h-0">
+        <ScrollArea className="h-full p-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            {activeResult.governorLimits ? (
+              <>
+                <LimitBar label="SOQL Queries" value={activeResult.governorLimits.soqlQueries} max={100} />
+                <LimitBar label="DML Statements" value={activeResult.governorLimits.dmlStatements} max={150} />
+                <LimitBar label="CPU Time (ms)" value={activeResult.governorLimits.cpuTimeMs} max={10000} />
+                <LimitBar label="Heap Size (MB)" value={(activeResult.governorLimits.heapSizeBytes / 1024 / 1024).toFixed(2)} max={6} />
+              </>
+            ) : (
+              <div className="col-span-2 text-center py-10 text-muted-foreground font-mono text-sm">
+                Limits data not available for this run.
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -545,10 +756,10 @@ function LimitBar({ label, value, max }: { label: string, value: number | string
   
   return (
     <div className="p-4 border border-white/5 rounded-xl bg-secondary/20 hover:bg-secondary/40 transition-colors">
-      <div className="flex justify-between text-sm mb-3">
-        <span className="font-medium text-foreground">{label}</span>
+      <div className="flex justify-between text-sm mb-3 gap-2">
+        <span className="font-medium text-foreground truncate">{label}</span>
         <span className={cn(
-          "font-mono font-bold", 
+          "font-mono font-bold shrink-0", 
           isDanger ? "text-destructive" : isWarning ? "text-warning" : "text-muted-foreground"
         )}>
           {value} <span className="text-muted-foreground font-normal">/ {max}</span>

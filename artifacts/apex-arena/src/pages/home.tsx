@@ -35,66 +35,65 @@ export default function Home() {
   return (
     <PageWrapper>
       {/* Cinematic Hero Section */}
-      <section className="relative overflow-hidden border-b border-white/[0.08] pt-32 pb-24 sm:pt-40 sm:pb-32 bg-background">
+      <section className="relative overflow-hidden border-b border-white/[0.08] pt-20 pb-16 sm:pt-32 sm:pb-24 lg:pt-40 lg:pb-32 bg-background">
         <div className="absolute inset-0 z-0 bg-grid-pattern opacity-20 mask-image-radial-gradient"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 blur-[120px] rounded-full pointer-events-none"></div>
         
-        <div className="container max-w-screen-xl px-4 md:px-6 mx-auto relative z-10 flex flex-col lg:flex-row items-center gap-12">
-          <div className="flex-1 text-center lg:text-left">
+        <div className="container max-w-screen-xl px-4 md:px-6 mx-auto relative z-10 flex flex-col lg:flex-row items-center gap-10 lg:gap-12">
+          <div className="flex-1 text-center lg:text-left w-full">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <Badge variant="outline" className="mb-6 border-primary/30 text-primary bg-primary/10 px-3 py-1 font-mono text-xs uppercase tracking-widest">
+              <Badge variant="outline" className="mb-6 border-primary/30 text-primary bg-primary/10 px-3 py-1 font-mono text-[10px] sm:text-xs uppercase tracking-widest">
                 Salesforce Developer Practice Arena
               </Badge>
-              <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter mb-6 font-display leading-[1.1]">
+              <h1 className="text-4xl xs:text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter mb-6 font-display leading-[1.1]">
                 Master Apex <br className="hidden lg:block"/>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-teal-400 animate-pulse-slow glow-text">The Hard Way</span>
               </h1>
-              <p className="max-w-2xl mx-auto lg:mx-0 text-lg sm:text-xl text-muted-foreground mb-10 font-sans font-light leading-relaxed">
+              <p className="max-w-2xl mx-auto lg:mx-0 text-base sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 font-sans font-light leading-relaxed">
                 Real-world scenarios. Strict governor limits. Instant feedback. Level up your Salesforce development skills in a competitive, zero-distraction environment.
               </p>
-              <div className="flex flex-wrap justify-center lg:justify-start gap-4">
-                <Link href="/problems" className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.3)] transition-all hover:bg-primary/90 hover:shadow-[0_0_30px_hsl(var(--primary)/0.5)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-testid="link-explore-problems">
+              <div className="flex flex-wrap justify-center lg:justify-start gap-3 sm:gap-4">
+                <Link href="/problems" className="inline-flex h-11 sm:h-12 items-center justify-center rounded-md bg-primary px-6 sm:px-8 text-sm font-semibold text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.3)] transition-all hover:bg-primary/90 hover:shadow-[0_0_30px_hsl(var(--primary)/0.5)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-testid="link-explore-problems">
                   Start Coding
                 </Link>
-                <Link href="/leaderboard" className="inline-flex h-12 items-center justify-center rounded-md border border-white/10 bg-secondary/50 backdrop-blur-sm px-8 text-sm font-semibold shadow-sm transition-all hover:bg-secondary hover:border-white/20 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-testid="link-view-leaderboard">
+                <Link href="/leaderboard" className="inline-flex h-11 sm:h-12 items-center justify-center rounded-md border border-white/10 bg-secondary/50 backdrop-blur-sm px-6 sm:px-8 text-sm font-semibold shadow-sm transition-all hover:bg-secondary hover:border-white/20 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-testid="link-view-leaderboard">
                   View Leaderboard
                 </Link>
               </div>
               
-              <div className="mt-12 flex items-center justify-center lg:justify-start gap-8 border-t border-white/10 pt-8">
-                <div className="text-sm text-muted-foreground font-mono">Trusted by developers at</div>
+              <div className="mt-10 sm:mt-12 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 sm:gap-8 border-t border-white/10 pt-6 sm:pt-8">
+                <div className="text-xs sm:text-sm text-muted-foreground font-mono">Trusted by developers at</div>
                 <div className="flex gap-4 opacity-50 grayscale">
-                  {/* Pseudo logos */}
-                  <div className="font-bold font-display tracking-tight text-xl">CloudInc</div>
-                  <div className="font-bold font-display tracking-tight text-xl italic">Nexus</div>
+                  <div className="font-bold font-display tracking-tight text-lg sm:text-xl">CloudInc</div>
+                  <div className="font-bold font-display tracking-tight text-lg sm:text-xl italic">Nexus</div>
                 </div>
               </div>
             </motion.div>
           </div>
           
           <motion.div 
-            className="flex-1 w-full max-w-lg hidden md:block"
+            className="flex-1 w-full max-w-lg"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <div className="rounded-xl border border-white/10 bg-[#0d1117] overflow-hidden shadow-2xl shadow-primary/5 relative group">
               <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="flex items-center px-4 py-3 border-b border-white/5 bg-[#161b22]">
+              <div className="flex items-center px-3 sm:px-4 py-3 border-b border-white/5 bg-[#161b22]">
                 <div className="flex gap-2">
                   <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                   <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
                   <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
                 </div>
-                <div className="ml-4 text-xs font-mono text-muted-foreground flex items-center gap-2">
-                  <Terminal className="w-3 h-3" /> AccountTriggerHandler.cls
+                <div className="ml-3 sm:ml-4 text-[10px] sm:text-xs font-mono text-muted-foreground flex items-center gap-2 truncate">
+                  <Terminal className="w-3 h-3 shrink-0" /> AccountTriggerHandler.cls
                 </div>
               </div>
-              <div className="p-4 font-mono text-sm leading-relaxed overflow-hidden h-[240px]">
+              <div className="p-3 sm:p-4 font-mono text-xs sm:text-sm leading-relaxed overflow-x-auto h-[200px] sm:h-[240px]">
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -130,12 +129,12 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="container max-w-screen-xl px-4 md:px-6 mx-auto py-24 space-y-32">
+      <div className="container max-w-screen-xl px-4 md:px-6 mx-auto py-12 sm:py-16 md:py-24 space-y-16 sm:space-y-24 lg:space-y-32">
         
         {/* Categories */}
         <section>
-          <div className="flex items-center justify-between mb-10">
-            <h2 className="text-3xl font-bold tracking-tight font-display">Training Tracks</h2>
+          <div className="flex items-center justify-between mb-6 sm:mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight font-display">Training Tracks</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {(Object.entries(categoryMeta) as [keyof typeof categoryMeta, typeof categoryMeta[keyof typeof categoryMeta]][]).map(([key, meta], i) => {
@@ -167,10 +166,10 @@ export default function Home() {
         </section>
 
         {/* Featured Problems & Leaderboard */}
-        <section className="grid lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2 space-y-8">
+        <section className="grid lg:grid-cols-3 gap-8 lg:gap-12">
+          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
             <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold tracking-tight font-display">Featured Challenges</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight font-display">Featured Challenges</h2>
               <Link href="/problems" className="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1 group">
                 View all <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
@@ -231,9 +230,9 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-8">
             <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold tracking-tight font-display flex items-center gap-3">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight font-display flex items-center gap-3">
                 Top Devs
               </h2>
             </div>

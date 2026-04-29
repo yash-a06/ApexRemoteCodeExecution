@@ -40,15 +40,15 @@ export default function Problems() {
   const totalCount = problems?.length || 0;
 
   return (
-    <PageWrapper className="container max-w-screen-xl px-4 md:px-6 py-12 mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+    <PageWrapper className="container max-w-screen-xl px-4 md:px-6 py-8 sm:py-12 mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 sm:mb-12">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight font-display mb-2">Problem Library</h1>
-          <p className="text-muted-foreground text-lg">Practice real Salesforce scenarios with instant feedback.</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight font-display mb-2">Problem Library</h1>
+          <p className="text-muted-foreground text-base sm:text-lg">Practice real Salesforce scenarios with instant feedback.</p>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-4 gap-8 items-start">
+      <div className="grid lg:grid-cols-4 gap-6 sm:gap-8 items-start">
         {/* Sticky Filters Sidebar */}
         <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
           <div className="rounded-xl border border-white/5 bg-card/50 backdrop-blur-sm overflow-hidden shadow-2xl shadow-primary/5">

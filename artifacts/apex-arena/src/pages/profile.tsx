@@ -79,8 +79,8 @@ export default function Profile() {
   }
 
   return (
-    <PageWrapper className="container max-w-screen-xl px-4 py-12 mx-auto">
-      <div className="grid lg:grid-cols-3 gap-8">
+    <PageWrapper className="container max-w-screen-xl px-4 py-8 sm:py-12 mx-auto">
+      <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
         
         {/* Left Column: User Card & Progress */}
         <div className="lg:col-span-1 space-y-6">
@@ -111,9 +111,9 @@ export default function Profile() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 group">
-                    <h1 className="text-3xl font-extrabold tracking-tight font-display truncate">{user.username}</h1>
-                    <button onClick={() => setIsEditing(true)} className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-primary transition-all">
+                  <div className="flex items-center gap-2 group min-w-0">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-display truncate">{user.username}</h1>
+                    <button onClick={() => setIsEditing(true)} className="shrink-0 text-muted-foreground opacity-100 sm:opacity-0 group-hover:opacity-100 hover:text-primary transition-all" aria-label="Edit name" data-testid="btn-edit-name">
                       <Edit2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -125,23 +125,23 @@ export default function Profile() {
                 Joined {format(new Date(user.joinedAt), "MMMM yyyy")}
               </div>
 
-              <div className="grid grid-cols-2 gap-6 py-6 border-t border-white/5">
+              <div className="grid grid-cols-2 gap-4 sm:gap-6 py-6 border-t border-white/5">
                 <div>
-                  <div className="text-3xl font-mono font-bold text-foreground mb-1"><AnimatedNumber value={stats.solvedCount} /></div>
+                  <div className="text-2xl sm:text-3xl font-mono font-bold text-foreground mb-1"><AnimatedNumber value={stats.solvedCount} /></div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Solved</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-mono font-bold text-success mb-1 drop-shadow-[0_0_8px_hsl(var(--success)/0.3)]"><AnimatedNumber value={stats.acceptanceRate} />%</div>
+                  <div className="text-2xl sm:text-3xl font-mono font-bold text-success mb-1 drop-shadow-[0_0_8px_hsl(var(--success)/0.3)]"><AnimatedNumber value={stats.acceptanceRate} />%</div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Acceptance</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-mono font-bold flex items-center gap-1.5 mb-1 text-foreground">
-                    <AnimatedNumber value={stats.currentStreakDays} /> <Flame className="w-6 h-6 text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                  <div className="text-2xl sm:text-3xl font-mono font-bold flex items-center gap-1.5 mb-1 text-foreground">
+                    <AnimatedNumber value={stats.currentStreakDays} /> <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
                   </div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Day Streak</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-mono font-bold text-foreground mb-1"><AnimatedNumber value={stats.submissionCount} /></div>
+                  <div className="text-2xl sm:text-3xl font-mono font-bold text-foreground mb-1"><AnimatedNumber value={stats.submissionCount} /></div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Submissions</div>
                 </div>
               </div>
@@ -211,7 +211,7 @@ export default function Profile() {
             ))}
           </div>
 
-          <Card className="border-white/5 bg-card/50 backdrop-blur-sm h-[500px] flex flex-col">
+          <Card className="border-white/5 bg-card/50 backdrop-blur-sm h-[400px] sm:h-[500px] flex flex-col">
             <CardHeader className="border-b border-white/5 bg-secondary/20">
               <CardTitle className="text-lg font-display flex items-center gap-2">
                 <Activity className="w-5 h-5 text-muted-foreground" /> Recent Activity
@@ -237,20 +237,20 @@ export default function Profile() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="p-5 hover:bg-secondary/30 transition-colors flex items-center justify-between group"
+                      className="p-4 sm:p-5 hover:bg-secondary/30 transition-colors flex items-center justify-between gap-3 group"
                     >
-                      <div>
-                        <div className="font-medium font-display text-lg mb-1.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium font-display text-base sm:text-lg mb-1.5 truncate">
                           <Link href={`/problems/${activity.problemSlug}`} className="text-foreground hover:text-primary transition-colors drop-shadow-sm">
                             {activity.problemTitle}
                           </Link>
                         </div>
-                        <div className="text-xs font-mono text-muted-foreground">
+                        <div className="text-[11px] sm:text-xs font-mono text-muted-foreground">
                           {format(new Date(activity.createdAt), "MMM d, yyyy • HH:mm")}
                         </div>
                       </div>
                       <Badge variant="outline" className={cn(
-                        "font-mono text-xs px-2.5 py-1 rounded-md",
+                        "font-mono text-[11px] sm:text-xs px-2 sm:px-2.5 py-1 rounded-md shrink-0",
                         activity.status === "accepted" ? "bg-success/10 text-success border-success/30 shadow-[0_0_10px_hsl(var(--success)/0.2)]" : "bg-destructive/5 text-destructive border-destructive/20"
                       )}>
                         {activity.status === "accepted" ? (
