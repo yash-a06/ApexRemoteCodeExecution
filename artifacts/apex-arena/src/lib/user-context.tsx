@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { v4 as uuidv4 } from "uuid";
+import { useUser as useClerkUser } from "@clerk/react";
 import { useUpsertUser } from "@workspace/api-client-react";
 
 interface UserContextType {
@@ -11,54 +11,45 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [userId, setUserIdState] = useState<string>("");
+  const { user, isLoaded } = useClerkUser();
   const [username, setUsernameState] = useState<string>("");
-  
   const upsertUser = useUpsertUser();
 
+  const userId = user?.id ?? "";
+
   useEffect(() => {
-    let storedUserId: string = localStorage.getItem("apex_arena_user_id") ?? "";
-    let storedUsername: string = localStorage.getItem("apex_arena_username") ?? "";
+    if (!isLoaded || !user) return;
 
-    if (!storedUserId) {
-      storedUserId = uuidv4();
-      localStorage.setItem("apex_arena_user_id", storedUserId);
-    }
+    const derivedUsername =
+      user.username ||
+      (user.firstName && user.lastName
+        ? `${user.firstName}${user.lastName}`
+        : null) ||
+      user.firstName ||
+      user.primaryEmailAddress?.emailAddress?.split("@")[0] ||
+      `apex_${user.id.slice(-6)}`;
 
-    if (!storedUsername) {
-      const shortId = storedUserId.substring(0, 6);
-      storedUsername = `apex_dev_${shortId}`;
-      localStorage.setItem("apex_arena_username", storedUsername);
-    }
+    setUsernameState(derivedUsername);
 
-    setUserIdState(storedUserId);
-    setUsernameState(storedUsername);
-
-    // Register user
     upsertUser.mutate({
       data: {
-        id: storedUserId,
-        username: storedUsername,
+        id: user.id,
+        username: derivedUsername,
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isLoaded, user?.id]);
 
   const setUsername = (newUsername: string) => {
     if (!userId) return;
     setUsernameState(newUsername);
-    localStorage.setItem("apex_arena_username", newUsername);
     upsertUser.mutate({
       data: {
         id: userId,
-        username: newUsername
-      }
+        username: newUsername,
+      },
     });
   };
-
-  if (!userId) {
-    return null; // or loading
-  }
 
   return (
     <UserContext.Provider value={{ userId, username, setUsername }}>

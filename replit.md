@@ -38,9 +38,19 @@ The API server analyzes Apex source code statically (no real Salesforce environm
 
 The 20 problem runners cover the four Apex categories. Status derivation logic in `engine.ts#deriveStatus` translates pass counts into `accepted | wrong_answer | runtime_error | compile_error | governor_limit_exceeded`.
 
+## Authentication
+
+Replit-managed Clerk Auth (`@clerk/react` on frontend, `@clerk/express` on server). Keys auto-provisioned via `setupClerkWhitelabelAuth()`.
+
+- `/sign-in` and `/sign-up` — Branded Clerk-hosted forms with dark theme, electric-cyan primary, and the Apex Arena logo (`public/logo.svg`).
+- Navbar shows **Sign in / Sign up** buttons for anonymous visitors; switches to the user avatar + **Sign out** for authenticated users.
+- `lib/user-context.tsx` uses Clerk's `user.id` as the system `userId` (replaces the old localStorage UUID). Username is derived from Clerk's `user.username`, full name, or email prefix, and synced to the DB via `upsertUser`.
+- API server mounts `clerkProxyMiddleware` at `/api/__clerk` and `clerkMiddleware()` before all routes.
+- Development uses `pk_test_*` keys; production automatically switches to live keys on deploy.
+
 ## Frontend
 
-React + Vite + TanStack Query + wouter routing + shadcn/ui components + Monaco Editor + react-resizable-panels. Dark mode is forced via `class="dark"` on `<html>`. Local user identity via UUID in `localStorage` (`apex_arena_user_id`, `apex_arena_username`); the user is upserted to the backend on first load.
+React + Vite + TanStack Query + wouter routing + shadcn/ui components + Monaco Editor + react-resizable-panels. Dark mode is forced via `class="dark"` on `<html>`. User identity is provided by Clerk Auth; the user record is upserted to the backend after sign-in.
 
 Pages:
 
@@ -58,6 +68,6 @@ Pages:
 
 ## Notes
 
-- No real authentication. The user identity is anonymous, stored in `localStorage`.
+- Authentication is powered by Replit-managed Clerk. Development and production user stores are separate — accounts made in dev won't exist in production.
 - Seed data inserts 20 problems and 5 sample users with realistic submissions on first server boot. Re-runs are idempotent.
 - After editing the OpenAPI spec, run `pnpm --filter @workspace/api-spec run codegen` to regenerate hooks and Zod schemas.
