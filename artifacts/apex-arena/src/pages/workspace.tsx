@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRoute, Link } from "wouter";
-import { PageWrapper } from "@/components/layout/page-wrapper";
+import { Navbar } from "@/components/layout/navbar";
 import { useUser } from "@/lib/user-context";
 import { 
   useGetProblem, 
@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Play, Send, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronDown, Check, Lock, TerminalSquare, AlertCircle, FlaskConical, Info, Lightbulb } from "lucide-react";
+import { Play, Send, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronDown, Check, Lock, TerminalSquare, AlertCircle, FlaskConical, Info, Lightbulb, BookOpen, Code2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -90,6 +90,7 @@ export default function Workspace() {
   const [code, setCode] = useState("");
   const [activeTab, setActiveTab] = useState("description");
   const [resultTab, setResultTab] = useState("tests");
+  const [mobileView, setMobileView] = useState<"info" | "code" | "output">("info");
   
   const runCodeMut = useRunCode();
   const submitMut = useCreateSubmission();
@@ -152,6 +153,7 @@ export default function Workspace() {
       onSuccess: (data) => {
         setRunResult(data);
         setSubmitResult(null);
+        if (!isDesktop) setMobileView("output");
       },
       onError: () => toast.error("Failed to run code")
     });
@@ -168,6 +170,8 @@ export default function Workspace() {
         setRunResult(null);
         if (isDesktop) {
           setActiveTab("submissions");
+        } else {
+          setMobileView("output");
         }
         queryClient.invalidateQueries({ queryKey: getListUserSubmissionsQueryKey(userId) });
         queryClient.invalidateQueries({ queryKey: getGetProblemQueryKey(slug) });
@@ -220,11 +224,11 @@ export default function Workspace() {
   }, [activeResult]);
 
   if (loadingProblem) {
-    return <PageWrapper className="p-4"><Skeleton className="h-full w-full rounded-xl bg-card border-white/5" /></PageWrapper>;
+    return <><Navbar /><div className="fixed inset-x-0 top-14 bottom-0 p-4 bg-background"><Skeleton className="h-full w-full rounded-xl bg-card border-white/5" /></div></>;
   }
 
   if (!problem) {
-    return <PageWrapper className="p-4 text-center py-20 font-display text-2xl text-muted-foreground">Problem not found</PageWrapper>;
+    return <><Navbar /><div className="fixed inset-x-0 top-14 bottom-0 flex items-center justify-center font-display text-2xl text-muted-foreground bg-background">Problem not found</div></>;
   }
 
   // ---------- Reusable panes ----------
@@ -431,8 +435,10 @@ export default function Workspace() {
   );
 
   return (
-    <PageWrapper className="flex-1 flex flex-col overflow-hidden bg-background h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)]">
-      <div className="h-full flex flex-col min-h-0">
+    <>
+      <Navbar />
+      {/* Fixed content area: top-14 = exactly below the sticky navbar, fills rest of viewport */}
+      <div className="fixed inset-x-0 top-14 bottom-0 flex flex-col bg-background overflow-hidden">
         
         {/* Editor Toolbar */}
         <div className="min-h-12 border-b border-white/5 bg-secondary/30 backdrop-blur-md flex items-center px-2 sm:px-4 justify-between shrink-0 gap-2 py-2">
@@ -531,43 +537,75 @@ export default function Workspace() {
               </ResizablePanel>
             </ResizablePanelGroup>
           ) : (
-            <div className="h-full flex flex-col relative">
-              <div className="flex-1 min-h-0 basis-2/5">{LeftPane}</div>
-              <div className="h-px bg-border/60 shrink-0" />
-              <div className="flex-1 min-h-0 basis-3/5">{EditorPane}</div>
-
-              {/* Mobile bottom sheet for run/submit results */}
-              <AnimatePresence>
-                {activeResult && (
-                  <motion.div
-                    key="mobile-results-sheet"
-                    initial={{ y: "100%" }}
-                    animate={{ y: 0 }}
-                    exit={{ y: "100%" }}
-                    transition={{ type: "spring", damping: 32, stiffness: 320 }}
-                    className="absolute inset-x-0 bottom-0 z-30 bg-card border-t border-white/10 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] flex flex-col"
-                    style={{ height: "78%" }}
-                    data-testid="mobile-results-sheet"
-                  >
-                    <div className="h-1 w-10 bg-white/20 rounded-full mx-auto mt-2 shrink-0" />
-                    <div className="flex-1 min-h-0">
+            /* Mobile: full-screen single pane with bottom navigation */
+            <div className="h-full flex flex-col">
+              {/* Content area — fills all space above the nav bar */}
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  {mobileView === "info" && (
+                    <motion.div key="info" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
+                      {LeftPane}
+                    </motion.div>
+                  )}
+                  {mobileView === "code" && (
+                    <motion.div key="code" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
+                      {EditorPane}
+                    </motion.div>
+                  )}
+                  {mobileView === "output" && (
+                    <motion.div key="output" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
                       <ResultsPanel
                         activeResult={activeResult}
                         submitResult={submitResult}
                         problem={problem}
                         resultTab={resultTab}
                         setResultTab={setResultTab}
-                        onClose={() => { setRunResult(null); setSubmitResult(null); }}
+                        onClose={() => { setRunResult(null); setSubmitResult(null); setMobileView("info"); }}
                       />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Bottom navigation bar */}
+              <div className="shrink-0 border-t border-white/10 bg-secondary/40 grid grid-cols-3 h-12" data-testid="mobile-nav">
+                <button
+                  onClick={() => setMobileView("info")}
+                  className={cn("flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold uppercase tracking-wider transition-colors",
+                    mobileView === "info" ? "text-primary" : "text-muted-foreground")}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Info
+                </button>
+                <button
+                  onClick={() => setMobileView("code")}
+                  className={cn("flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold uppercase tracking-wider transition-colors border-x border-white/5",
+                    mobileView === "code" ? "text-primary" : "text-muted-foreground")}
+                >
+                  <Code2 className="w-4 h-4" />
+                  Code
+                </button>
+                <button
+                  onClick={() => setMobileView("output")}
+                  className={cn("flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold uppercase tracking-wider transition-colors relative",
+                    mobileView === "output" ? "text-primary" : "text-muted-foreground")}
+                >
+                  <span className="relative">
+                    <TerminalSquare className="w-4 h-4" />
+                    {activeResult && (
+                      <span className={cn("absolute -top-0.5 -right-1 w-2 h-2 rounded-full border border-background",
+                        activeResult.compileError || activeResult.runtimeError || (submitResult && submitResult.status !== "accepted") ? "bg-destructive" : "bg-success"
+                      )} />
+                    )}
+                  </span>
+                  Output
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
-    </PageWrapper>
+    </>
   );
 }
 
