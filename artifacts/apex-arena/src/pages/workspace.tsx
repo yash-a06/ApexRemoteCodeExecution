@@ -636,15 +636,31 @@ function ResultsPanel({ activeResult, submitResult, problem, resultTab, setResul
   const descByName = new Map<string, string>();
   problem.sampleTests.forEach((t: any) => descByName.set(t.name, t.description));
 
+  const passedCount = activeResult.results?.filter((r: any) => r.passed).length ?? 0;
+  const totalCount = activeResult.results?.length ?? 0;
+
   return (
     <Tabs value={resultTab} onValueChange={setResultTab} className="h-full flex flex-col bg-card/80 backdrop-blur min-h-0">
-      <div className="border-b border-white/5 shrink-0 px-2 flex justify-between items-center bg-secondary/30 h-10">
-        <TabsList className="bg-transparent border-0 h-full gap-1 sm:gap-2 overflow-x-auto">
-          <TabsTrigger value="tests" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-3 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
-            Test Results
+      {/* Tab bar */}
+      <div className="border-b border-white/5 shrink-0 px-2 flex items-center justify-between bg-secondary/30 h-10 gap-1">
+        <TabsList className="bg-transparent border-0 h-full flex-1 min-w-0 gap-0 sm:gap-1">
+          <TabsTrigger value="tests" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-3 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors flex items-center gap-1.5">
+            <span className="sm:hidden">Results</span>
+            <span className="hidden sm:inline">Test Results</span>
+            {totalCount > 0 && (
+              <span className={cn(
+                "text-[9px] font-mono font-bold px-1 py-0.5 rounded",
+                passedCount === totalCount ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
+              )}>
+                {passedCount}/{totalCount}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="logs" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-3 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
             Console
+            {activeResult.debugLog?.length > 0 && (
+              <span className="ml-1.5 text-[9px] font-mono bg-white/10 px-1 py-0.5 rounded">{activeResult.debugLog.length}</span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="limits" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-2 sm:px-3 h-full text-[11px] sm:text-xs uppercase tracking-widest font-semibold text-muted-foreground transition-colors">
             Limits
@@ -655,124 +671,147 @@ function ResultsPanel({ activeResult, submitResult, problem, resultTab, setResul
         </Button>
       </div>
 
+      {/* Test Results tab */}
       <TabsContent value="tests" className="flex-1 overflow-hidden m-0 min-h-0">
-        <ScrollArea className="h-full p-4">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeResult.status || (activeResult.compileError ? "compile" : activeResult.runtimeError ? "runtime" : "run")}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-4"
-            >
-              {/* Top-level status banner */}
-              {errInfo ? (
-                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex gap-3 items-start" data-testid="error-banner">
-                  <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                  <div className="min-w-0">
-                    <div className="font-display font-semibold text-destructive text-base mb-1">{errInfo.title}</div>
-                    <div className="text-xs text-destructive/80 leading-relaxed mb-3">{errInfo.hint}</div>
-                    {(activeResult.compileError || activeResult.runtimeError) && (
-                      <div className="font-mono text-xs text-destructive/90 bg-destructive/10 p-3 rounded border border-destructive/20 whitespace-pre-wrap break-words leading-relaxed">
-                        {activeResult.compileError || activeResult.runtimeError}
-                      </div>
-                    )}
-                    {submitResult && !activeResult.compileError && !activeResult.runtimeError && (
-                      <div className="text-xs font-mono text-muted-foreground">
-                        Passed <span className="text-foreground font-bold">{submitResult.passedCount}</span> of <span className="text-foreground font-bold">{submitResult.totalCount}</span> tests
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : submitResult?.status === "accepted" ? (
-                <div className="bg-success/10 border border-success/30 rounded-lg p-4 flex gap-3 items-start">
-                  <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-display font-semibold text-success text-base mb-1">Accepted</div>
-                    <div className="text-xs text-success/80 leading-relaxed">
-                      All {submitResult.totalCount} tests passed. Nice work!
+        <ScrollArea className="h-full">
+          <div className="p-3 sm:p-4 space-y-3">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeResult.status || (activeResult.compileError ? "compile" : activeResult.runtimeError ? "runtime" : "run")}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-3"
+              >
+                {/* Status banner */}
+                {errInfo ? (
+                  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 sm:p-4 flex gap-2.5 items-start" data-testid="error-banner">
+                    <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-destructive shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-display font-semibold text-destructive text-sm sm:text-base mb-1">{errInfo.title}</div>
+                      <div className="text-xs text-destructive/80 leading-relaxed mb-2">{errInfo.hint}</div>
+                      {(activeResult.compileError || activeResult.runtimeError) && (
+                        <div className="font-mono text-[11px] sm:text-xs text-destructive/90 bg-destructive/10 p-2.5 rounded border border-destructive/20 whitespace-pre-wrap break-words leading-relaxed overflow-x-auto">
+                          {activeResult.compileError || activeResult.runtimeError}
+                        </div>
+                      )}
+                      {submitResult && !activeResult.compileError && !activeResult.runtimeError && (
+                        <div className="text-xs font-mono text-muted-foreground">
+                          Passed <span className="text-foreground font-bold">{submitResult.passedCount}</span> of <span className="text-foreground font-bold">{submitResult.totalCount}</span> tests
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex gap-3 items-center">
-                  <Info className="w-4 h-4 text-primary shrink-0" />
-                  <div className="text-xs text-foreground/80 leading-relaxed">
-                    Code executed. Review individual test results below.
+                ) : submitResult?.status === "accepted" ? (
+                  <div className="bg-success/10 border border-success/30 rounded-lg p-3 sm:p-4 flex gap-2.5 items-start">
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-success shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-display font-semibold text-success text-sm sm:text-base mb-1">Accepted</div>
+                      <div className="text-xs text-success/80 leading-relaxed">
+                        All {submitResult.totalCount} tests passed. Nice work!
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-2.5 flex gap-2.5 items-center">
+                    <Info className="w-4 h-4 text-primary shrink-0" />
+                    <div className="text-xs text-foreground/80 leading-relaxed">
+                      Code executed. Review individual test results below.
+                    </div>
+                  </div>
+                )}
 
-              {/* Per-test breakdown */}
-              {!activeResult.compileError && !activeResult.runtimeError && (
-                <div className="grid gap-2">
-                  {activeResult.results?.map((r: any, i: number) => (
-                    <div key={i} className={cn(
-                      "p-4 rounded-lg border",
-                      r.passed ? "bg-success/5 border-success/20" : "bg-destructive/5 border-destructive/20 border-l-4 border-l-destructive"
-                    )} data-testid={`result-${i}`}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="font-semibold flex items-center gap-2 font-mono text-sm text-foreground min-w-0">
-                          {r.passed ? <Check className="w-4 h-4 text-success shrink-0" /> : <XCircle className="w-4 h-4 text-destructive shrink-0" />}
-                          {r.hidden ? (
-                            <span className="flex items-center gap-1.5 opacity-70 truncate"><Lock className="w-3.5 h-3.5 shrink-0"/> Hidden Test #{i+1}</span>
-                          ) : (
-                            <span className="truncate">{r.name}</span>
-                          )}
+                {/* Per-test breakdown */}
+                {!activeResult.compileError && !activeResult.runtimeError && (
+                  <div className="grid gap-2">
+                    {activeResult.results?.map((r: any, i: number) => (
+                      <div key={i} className={cn(
+                        "p-3 sm:p-4 rounded-lg border",
+                        r.passed
+                          ? "bg-success/5 border-success/20"
+                          : "bg-destructive/5 border-destructive/20 border-l-[3px] border-l-destructive",
+                      )} data-testid={`result-${i}`}>
+                        {/* Test name row */}
+                        <div className="flex items-center justify-between gap-2 min-w-0">
+                          <div className="font-semibold flex items-center gap-1.5 font-mono text-xs sm:text-sm text-foreground min-w-0">
+                            {r.passed
+                              ? <Check className="w-3.5 h-3.5 text-success shrink-0" />
+                              : <XCircle className="w-3.5 h-3.5 text-destructive shrink-0" />}
+                            {r.hidden ? (
+                              <span className="flex items-center gap-1 opacity-70 min-w-0">
+                                <Lock className="w-3 h-3 shrink-0" />
+                                <span className="truncate">Hidden Test #{i + 1}</span>
+                              </span>
+                            ) : (
+                              <span className="truncate">{r.name}</span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-mono text-muted-foreground bg-black/20 px-1.5 py-0.5 rounded shrink-0">{r.executionTimeMs}ms</span>
                         </div>
-                        <div className="text-xs font-mono text-muted-foreground bg-black/20 px-2 py-0.5 rounded shrink-0">{r.executionTimeMs}ms</div>
+
+                        {/* Test description */}
+                        {!r.hidden && descByName.get(r.name) && (
+                          <div className="mt-1.5 pl-5 text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+                            {descByName.get(r.name)}
+                          </div>
+                        )}
+
+                        {/* Failure detail */}
+                        {!r.passed && !r.hidden && (
+                          <div className="mt-2 pl-5">
+                            <div className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-widest text-destructive mb-1 flex items-center gap-1">
+                              <AlertCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Why it failed
+                            </div>
+                            <div className="font-mono text-[11px] sm:text-xs text-destructive/90 bg-destructive/10 p-2 sm:p-3 rounded border border-destructive/10 whitespace-pre-wrap break-words leading-relaxed overflow-x-auto">
+                              {r.message}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Hidden failure hint */}
+                        {r.hidden && !r.passed && (
+                          <div className="text-[11px] text-muted-foreground/70 mt-1.5 pl-5 font-mono italic leading-relaxed">
+                            Hidden test failed — bulkify your code and check edge cases.
+                          </div>
+                        )}
                       </div>
-                      {!r.hidden && descByName.get(r.name) && (
-                        <div className="mt-2 ml-6 text-xs text-muted-foreground leading-relaxed">
-                          {descByName.get(r.name)}
-                        </div>
-                      )}
-                      {!r.passed && !r.hidden && (
-                        <div className="mt-3 ml-6">
-                          <div className="text-[10px] font-semibold uppercase tracking-widest text-destructive mb-1.5 opacity-90 flex items-center gap-1.5">
-                            <AlertCircle className="w-3 h-3" /> Failure Detail
-                          </div>
-                          <div className="font-mono text-xs text-destructive/90 bg-destructive/10 p-3 rounded border border-destructive/10 whitespace-pre-wrap break-words leading-relaxed">
-                            {r.message}
-                          </div>
-                        </div>
-                      )}
-                      {r.hidden && !r.passed && (
-                        <div className="text-xs text-muted-foreground/70 mt-2 ml-6 font-mono italic">Hidden test case failed. Output not shown — bulkify your code and check edge cases.</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </ScrollArea>
       </TabsContent>
 
+      {/* Console tab */}
       <TabsContent value="logs" className="flex-1 overflow-hidden m-0 min-h-0">
-        <ScrollArea className="h-full p-4 bg-[#0b0d12]">
-          <div className="font-mono text-[13px] leading-relaxed">
+        <ScrollArea className="h-full p-3 sm:p-4 bg-[#0b0d12]">
+          <div className="font-mono text-[12px] sm:text-[13px] leading-relaxed">
             {activeResult.debugLog?.length > 0 ? (
               activeResult.debugLog.map((log: string, i: number) => (
                 <div key={i} className="mb-1 text-gray-300 hover:bg-white/5 px-2 -mx-2 rounded transition-colors break-all">
-                  <span className="text-muted-foreground mr-2 select-none">{String(i+1).padStart(2, '0')}</span>
+                  <span className="text-muted-foreground mr-2 select-none">{String(i + 1).padStart(2, "0")}</span>
                   {log}
                 </div>
               ))
             ) : (
               <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                 <TerminalSquare className="w-8 h-8 opacity-20 mb-2" />
-                <span className="font-mono text-sm opacity-60 text-center px-4">No debug logs. Use System.debug() to print output.</span>
+                <span className="font-mono text-xs sm:text-sm opacity-60 text-center px-4">
+                  No debug logs. Use System.debug() to print output.
+                </span>
               </div>
             )}
           </div>
         </ScrollArea>
       </TabsContent>
 
+      {/* Governor Limits tab */}
       <TabsContent value="limits" className="flex-1 overflow-hidden m-0 min-h-0">
-        <ScrollArea className="h-full p-4">
-          <div className="grid sm:grid-cols-2 gap-4">
+        <ScrollArea className="h-full p-3 sm:p-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
             {activeResult.governorLimits ? (
               <>
                 <LimitBar label="SOQL Queries" value={activeResult.governorLimits.soqlQueries} max={100} />
@@ -799,14 +838,14 @@ function LimitBar({ label, value, max }: { label: string, value: number | string
   const isWarning = pct > 70 && !isDanger;
   
   return (
-    <div className="p-4 border border-white/5 rounded-xl bg-secondary/20 hover:bg-secondary/40 transition-colors">
-      <div className="flex justify-between text-sm mb-3 gap-2">
-        <span className="font-medium text-foreground truncate">{label}</span>
+    <div className="p-2.5 sm:p-4 border border-white/5 rounded-xl bg-secondary/20 hover:bg-secondary/40 transition-colors">
+      <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-2 mb-2 sm:mb-3">
+        <span className="font-medium text-foreground text-[11px] sm:text-sm truncate">{label}</span>
         <span className={cn(
-          "font-mono font-bold shrink-0", 
+          "font-mono font-bold text-[11px] sm:text-sm shrink-0",
           isDanger ? "text-destructive" : isWarning ? "text-warning" : "text-muted-foreground"
         )}>
-          {value} <span className="text-muted-foreground font-normal">/ {max}</span>
+          {value}<span className="text-muted-foreground font-normal text-[10px] sm:text-xs">/{max}</span>
         </span>
       </div>
       <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
