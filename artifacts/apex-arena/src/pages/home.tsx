@@ -1,7 +1,7 @@
 import { PageWrapper } from "@/components/layout/page-wrapper";
 import { Link } from "wouter";
 import { useGetPlatformStats, useListFeaturedProblems, useGetLeaderboard } from "@workspace/api-client-react";
-import { Code2, Zap, Layers, Database, ArrowRight, Trophy, Users, Activity, Terminal } from "lucide-react";
+import { Code2, Zap, Layers, Database, ArrowRight, Users, Activity, Terminal, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -174,81 +174,85 @@ export default function Home() {
         {/* Featured + Leaderboard mini */}
         <section className="grid lg:grid-cols-3 gap-8 lg:gap-12">
           {/* Featured problems */}
-          <div className="lg:col-span-2 space-y-5 sm:space-y-8">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl sm:text-3xl font-bold tracking-tight font-display">Featured Challenges</h2>
-              <Link href="/problems" className="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1 group">
-                View all <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6 min-w-0">
+            {/* Section header */}
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <h2 className="text-xl sm:text-3xl font-bold tracking-tight font-display shrink-0">Featured Challenges</h2>
+              <Link href="/problems" className="text-xs sm:text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1 group shrink-0">
+                View all <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
 
-            <div className="grid gap-3">
+            <div className="grid gap-2.5 min-w-0">
               {loadingFeatured
-                ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full bg-secondary rounded-xl" />)
-                : featured?.map((p, i) => (
-                    <motion.div
-                      key={p.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 }}
-                    >
-                      <Link href={`/problems/${p.slug}`}>
-                        <Card className="hover:bg-secondary/40 transition-all duration-300 border-white/5 hover:border-primary/30 relative overflow-hidden group">
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <CardContent className="p-3.5 sm:p-5">
-                            {/* Title + difficulty badge */}
-                            <div className="flex items-start gap-2 mb-2">
-                              <h3 className="font-semibold text-sm sm:text-base font-display leading-snug flex-1 min-w-0 truncate">
-                                {p.title}
-                              </h3>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[10px] px-1.5 py-0.5 uppercase tracking-wider font-mono rounded-full shrink-0 flex items-center gap-1",
-                                  p.difficulty === "easy" ? "text-success border-success/20 bg-success/5"
-                                    : p.difficulty === "medium" ? "text-warning border-warning/20 bg-warning/5"
-                                    : "text-destructive border-destructive/20 bg-destructive/5",
-                                )}
-                              >
-                                <span className={cn("w-1 h-1 rounded-full",
-                                  p.difficulty === "easy" ? "bg-success"
-                                    : p.difficulty === "medium" ? "bg-warning"
-                                    : "bg-destructive",
-                                )} />
-                                {p.difficulty}
-                              </Badge>
-                            </div>
-                            {/* Tags + acceptance rate */}
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex gap-1.5 flex-wrap min-w-0">
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full bg-secondary rounded-xl" />
+                  ))
+                : featured?.map((p, i) => {
+                    const diffColor =
+                      p.difficulty === "easy" ? "text-success border-success/25 bg-success/8"
+                      : p.difficulty === "medium" ? "text-warning border-warning/25 bg-warning/8"
+                      : "text-destructive border-destructive/25 bg-destructive/8";
+                    const dotColor =
+                      p.difficulty === "easy" ? "bg-success shadow-[0_0_4px_hsl(var(--success))]"
+                      : p.difficulty === "medium" ? "bg-warning shadow-[0_0_4px_hsl(var(--warning))]"
+                      : "bg-destructive shadow-[0_0_4px_hsl(var(--destructive))]";
+                    return (
+                      <motion.div
+                        key={p.id}
+                        className="w-full min-w-0"
+                        initial={{ opacity: 0, y: 8 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.08 }}
+                      >
+                        <Link href={`/problems/${p.slug}`} className="block w-full min-w-0">
+                          <div className="rounded-xl border border-white/5 hover:border-primary/30 bg-card hover:bg-secondary/40 transition-all duration-300 relative overflow-hidden group w-full">
+                            {/* Left accent bar */}
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                            <div className="p-3.5 sm:p-5">
+                              {/* Row 1: difficulty dot + title */}
+                              <div className="flex items-center gap-2 mb-2 w-full min-w-0">
+                                <span className={cn("w-2 h-2 rounded-full shrink-0", dotColor)} />
+                                <h3 className="font-semibold text-sm sm:text-base font-display leading-snug min-w-0 flex-1 group-hover:text-primary transition-colors" style={{ wordBreak: "break-word", overflowWrap: "break-word" }}>
+                                  {p.title}
+                                </h3>
+                              </div>
+
+                              {/* Row 2: difficulty badge + tags + acceptance */}
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-4">
+                                {/* Difficulty */}
+                                <span className={cn("text-[10px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border shrink-0", diffColor)}>
+                                  {p.difficulty}
+                                </span>
+                                {/* Tags */}
                                 {p.tags.slice(0, 2).map((t) => (
                                   <span key={t} className="text-[10px] font-mono text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
                                     {t}
                                   </span>
                                 ))}
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <div className="hidden xs:block w-10 h-1 bg-muted rounded-full overflow-hidden">
-                                  <div className="h-full bg-primary" style={{ width: `${p.acceptanceRate}%` }} />
-                                </div>
-                                <span className="font-mono text-xs text-muted-foreground">{p.acceptanceRate}%</span>
+                                {/* Acceptance rate */}
+                                <span className="ml-auto text-[10px] font-mono text-muted-foreground shrink-0">
+                                  {p.acceptanceRate}% acceptance
+                                </span>
                               </div>
                             </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    </motion.div>
-                  ))}
+                          </div>
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
             </div>
           </div>
 
           {/* Mini leaderboard */}
-          <div className="space-y-5 sm:space-y-8">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl sm:text-3xl font-bold tracking-tight font-display">Top Devs</h2>
-              <Link href="/leaderboard" className="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1 group">
-                Full board <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          <div className="space-y-4 sm:space-y-6 min-w-0">
+            {/* Section header */}
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <h2 className="text-xl sm:text-3xl font-bold tracking-tight font-display shrink-0">Top Devs</h2>
+              <Link href="/leaderboard" className="text-xs sm:text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1 group shrink-0">
+                Full board <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
 
@@ -257,7 +261,9 @@ export default function Home() {
               <CardContent className="p-0">
                 <div className="divide-y divide-white/5">
                   {loadingLeaderboard
-                    ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-none bg-transparent" />)
+                    ? Array.from({ length: 5 }).map((_, i) => (
+                        <Skeleton key={i} className="h-14 w-full rounded-none bg-transparent" />
+                      ))
                     : leaderboard?.slice(0, 5).map((user, idx) => (
                         <div key={user.userId} className="flex items-center justify-between px-4 py-3.5 hover:bg-secondary/50 transition-colors group">
                           <div className="flex items-center gap-3 min-w-0">
@@ -270,7 +276,7 @@ export default function Home() {
                             )}>
                               {idx + 1}
                             </div>
-                            <div className="font-medium group-hover:text-primary transition-colors text-sm truncate">{user.username}</div>
+                            <div className="font-medium group-hover:text-primary transition-colors text-sm truncate min-w-0">{user.username}</div>
                           </div>
                           <div className="text-right shrink-0">
                             <div className="text-sm font-mono font-bold text-foreground">{user.solvedCount}</div>
