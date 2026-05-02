@@ -278,10 +278,10 @@ export default function Workspace() {
       </TabsContent>
 
       <TabsContent value="tests" className="flex-1 overflow-hidden m-0 min-h-0">
-        <ScrollArea className="h-full px-4 sm:px-6 py-6">
-          <div className="space-y-3">
-            <div className="text-xs text-muted-foreground font-mono leading-relaxed mb-4">
-              These checks run against your code. Visible tests show full failure details — hidden tests count toward your score on submit.
+        <ScrollArea className="h-full">
+          <div className="px-3 sm:px-5 py-4 space-y-2.5">
+            <div className="text-[11px] sm:text-xs text-muted-foreground font-mono leading-relaxed mb-3">
+              Visible tests show full failure details — hidden tests count toward your score on submit.
             </div>
             {problem.sampleTests.map((t, i) => {
               const r = testStatusByName.get(t.name);
@@ -292,37 +292,44 @@ export default function Workspace() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04 }}
                   className={cn(
-                    "rounded-lg border p-4",
-                    !r ? "bg-secondary/20 border-white/5" :
-                    r.passed ? "bg-success/5 border-success/20" :
-                    "bg-destructive/5 border-destructive/20"
+                    "rounded-lg border p-3 sm:p-4",
+                    !r
+                      ? "bg-secondary/20 border-white/5"
+                      : r.passed
+                      ? "bg-success/5 border-success/20"
+                      : "bg-destructive/5 border-destructive/20 border-l-[3px] border-l-destructive"
                   )}
                   data-testid={`test-case-${i}`}
                 >
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2 font-semibold text-sm font-mono text-foreground min-w-0">
+                  {/* Name row */}
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <div className="flex items-center gap-1.5 font-semibold text-xs sm:text-sm font-mono text-foreground min-w-0">
                       {!r ? (
-                        <span className="w-4 h-4 rounded-full border border-white/20 shrink-0" />
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0" />
                       ) : r.passed ? (
-                        <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
                       ) : (
-                        <XCircle className="w-4 h-4 text-destructive shrink-0" />
+                        <XCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
                       )}
-                      <span className="break-words">{t.name}</span>
+                      <span className="truncate">{t.name}</span>
                     </div>
                     {r && (
-                      <span className="text-[10px] font-mono text-muted-foreground bg-black/30 px-2 py-0.5 rounded shrink-0">{r.executionTimeMs}ms</span>
+                      <span className="text-[10px] font-mono text-muted-foreground bg-black/30 px-1.5 py-0.5 rounded shrink-0">{r.executionTimeMs}ms</span>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground leading-relaxed pl-6 mb-2">
+
+                  {/* Description */}
+                  <div className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed pl-5 mt-1.5">
                     {t.description}
                   </div>
+
+                  {/* Failure detail */}
                   {r && !r.passed && (
-                    <div className="mt-3 ml-6">
-                      <div className="text-[10px] font-semibold uppercase tracking-widest text-destructive mb-1.5 flex items-center gap-1.5">
-                        <AlertCircle className="w-3 h-3" /> Why it failed
+                    <div className="mt-2.5 pl-5">
+                      <div className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-widest text-destructive mb-1 flex items-center gap-1">
+                        <AlertCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> Why it failed
                       </div>
-                      <div className="font-mono text-xs text-destructive/90 bg-destructive/10 p-3 rounded border border-destructive/10 whitespace-pre-wrap break-words leading-relaxed">
+                      <div className="font-mono text-[11px] sm:text-xs text-destructive/90 bg-destructive/10 p-2 sm:p-3 rounded border border-destructive/10 whitespace-pre-wrap break-words leading-relaxed overflow-x-auto">
                         {r.message}
                       </div>
                     </div>
@@ -331,9 +338,9 @@ export default function Workspace() {
               );
             })}
             {problem.hiddenTestCount > 0 && (
-              <div className="bg-primary/5 border border-primary/20 border-dashed rounded-lg p-4 flex items-center gap-3 text-sm text-primary font-medium">
-                <Lock className="w-4 h-4 shrink-0" />
-                <span>+{problem.hiddenTestCount} hidden tests evaluated on submit. Bulkify your code to pass them.</span>
+              <div className="bg-primary/5 border border-primary/20 border-dashed rounded-lg p-3 sm:p-4 flex items-center gap-2.5 text-xs sm:text-sm text-primary font-medium">
+                <Lock className="w-3.5 h-3.5 shrink-0" />
+                <span>+{problem.hiddenTestCount} hidden tests on submit. Bulkify your code to pass them.</span>
               </div>
             )}
           </div>
