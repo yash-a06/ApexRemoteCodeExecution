@@ -51,7 +51,7 @@ function describeError(status: string | undefined): { title: string; hint: strin
         title: "Runtime Error",
         hint: "Your code compiled but threw an exception while executing. Look at the message below to see what went wrong.",
       };
-    case "limit_exceeded":
+    case "governor_limit_exceeded":
       return {
         title: "Governor Limit Exceeded",
         hint: "Your code ran past a Salesforce governor limit. Move SOQL/DML out of loops and bulkify your logic.",
@@ -680,7 +680,7 @@ function ResultsPanel({ activeResult, submitResult, problem, resultTab, setResul
 
   const errInfo = activeResult.compileError ? describeError("compile_error")
     : activeResult.runtimeError ? describeError("runtime_error")
-    : submitResult ? describeError(submitResult.status)
+    : (submitResult && submitResult.status !== "accepted") ? describeError(submitResult.status)
     : null;
 
   // Index sample tests by name to enrich result rows with descriptions
