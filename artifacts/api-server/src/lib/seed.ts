@@ -1,5 +1,5 @@
 import { db, problemsTable, usersTable, submissionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { SEED_PROBLEMS, SEED_USERS } from "./seed-data";
 import { logger } from "./logger";
 
@@ -45,6 +45,7 @@ export async function seedDatabase(): Promise<void> {
         starterCode: p.starterCode,
         tests: p.tests,
         featuredOrder: p.featuredOrder ?? null,
+        isPremium: p.isPremium ?? false,
       })
       .onConflictDoNothing();
   }
@@ -86,6 +87,24 @@ export async function seedDatabase(): Promise<void> {
     }
   }
   logger.info("Seeding complete");
+}
+
+export async function updatePremiumFlags(): Promise<void> {
+  const premiumSlugs = SEED_PROBLEMS.filter((p) => p.isPremium).map((p) => p.slug);
+  const freeSlugs = SEED_PROBLEMS.filter((p) => !p.isPremium).map((p) => p.slug);
+  if (premiumSlugs.length > 0) {
+    await db
+      .update(problemsTable)
+      .set({ isPremium: true })
+      .where(inArray(problemsTable.slug, premiumSlugs));
+  }
+  if (freeSlugs.length > 0) {
+    await db
+      .update(problemsTable)
+      .set({ isPremium: false })
+      .where(inArray(problemsTable.slug, freeSlugs));
+  }
+  logger.info({ premiumCount: premiumSlugs.length }, "Premium flags updated");
 }
 
 export async function ensureProblemSeed(slug: string): Promise<void> {

@@ -12,7 +12,8 @@ import Home from "@/pages/home";
 import Problems from "@/pages/problems";
 import Workspace from "@/pages/workspace";
 import Profile from "@/pages/profile";
-import Leaderboard from "@/pages/leaderboard";
+import Roadmap from "@/pages/roadmap";
+import Pricing from "@/pages/pricing";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -146,7 +147,8 @@ function Router() {
         <Route path="/problems" component={Problems} />
         <Route path="/problems/:slug" component={Workspace} />
         <Route path="/profile" component={Profile} />
-        <Route path="/leaderboard" component={Leaderboard} />
+        <Route path="/roadmap" component={Roadmap} />
+        <Route path="/pricing" component={Pricing} />
         <Route component={NotFound} />
       </Switch>
     </UserProvider>

@@ -4,6 +4,7 @@ import {
   serial,
   integer,
   jsonb,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 export type ProblemCategory = "trigger" | "async_apex" | "classes" | "soql";
@@ -21,8 +22,6 @@ export interface TestSpec {
   name: string;
   description: string;
   hidden: boolean;
-  // Reference to a runner-resolved test inside the simulated engine
-  // (matched by test name in src/lib/runner/problems/<slug>.ts)
 }
 
 export const problemsTable = pgTable("problems", {
@@ -38,6 +37,7 @@ export const problemsTable = pgTable("problems", {
   starterCode: text("starter_code").notNull(),
   tests: jsonb("tests").$type<TestSpec[]>().notNull().default([]),
   featuredOrder: integer("featured_order"),
+  isPremium: boolean("is_premium").notNull().default(false),
 });
 
 export type Problem = typeof problemsTable.$inferSelect;

@@ -27,4 +27,6 @@ export interface ProblemDetail {
   acceptanceRate: number;
   totalSubmissions: number;
   solved?: boolean;
+  /** Whether this problem requires a Pro subscription */
+  isPremium?: boolean;
 }

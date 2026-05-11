@@ -22,4 +22,6 @@ export interface ProblemSummary {
   totalSubmissions: number;
   /** Whether the requesting user has solved it (only present when userId is supplied) */
   solved?: boolean;
+  /** Whether this problem requires a Pro subscription */
+  isPremium?: boolean;
 }

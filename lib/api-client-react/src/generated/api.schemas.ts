@@ -76,6 +76,8 @@ export interface ProblemSummary {
   totalSubmissions: number;
   /** Whether the requesting user has solved it (only present when userId is supplied) */
   solved?: boolean;
+  /** Whether this problem requires a Pro subscription */
+  isPremium?: boolean;
 }
 
 export interface TestCase {
@@ -101,6 +103,8 @@ export interface ProblemDetail {
   acceptanceRate: number;
   totalSubmissions: number;
   solved?: boolean;
+  /** Whether this problem requires a Pro subscription */
+  isPremium?: boolean;
 }
 
 export interface TestResult {
@@ -170,6 +174,7 @@ export interface UserProfile {
   joinedAt: string;
   solvedCount: number;
   submissionCount: number;
+  isSubscribed: boolean;
 }
 
 export interface UpsertUserInput {

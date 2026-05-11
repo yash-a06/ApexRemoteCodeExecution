@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Play, Send, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronDown, Check, Lock, TerminalSquare, AlertCircle, FlaskConical, Info, Lightbulb, BookOpen, Code2 } from "lucide-react";
+import { Play, Send, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronDown, Check, Lock, TerminalSquare, AlertCircle, FlaskConical, Info, Lightbulb, BookOpen, Code2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -72,7 +72,7 @@ function describeError(status: string | undefined): { title: string; hint: strin
 export default function Workspace() {
   const [, params] = useRoute("/problems/:slug");
   const slug = params?.slug || "";
-  const { userId } = useUser();
+  const { userId, isSubscribed } = useUser();
   const queryClient = useQueryClient();
   const monaco = useMonaco();
   const isDesktop = useIsDesktop();
@@ -229,6 +229,50 @@ export default function Workspace() {
 
   if (!problem) {
     return <><Navbar /><div className="fixed inset-x-0 top-14 bottom-0 flex items-center justify-center font-display text-2xl text-muted-foreground bg-background">Problem not found</div></>;
+  }
+
+  if (problem.isPremium && !isSubscribed) {
+    return (
+      <>
+        <Navbar />
+        <div className="fixed inset-x-0 top-14 bottom-0 flex items-center justify-center bg-background p-4">
+          <div className="w-full max-w-md text-center space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mx-auto">
+              <Lock className="w-8 h-8 text-yellow-400" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-widest text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-2.5 py-1 rounded-full mb-3">
+                <Sparkles className="w-3 h-3" /> Pro Problem
+              </div>
+              <h1 className="text-2xl font-bold font-display mb-2">{problem.title}</h1>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                This is an advanced problem available to Pro members. Upgrade to access all {8} Pro problems including this one.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href="/pricing"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-yellow-500 hover:bg-yellow-400 text-yellow-950 px-6 text-sm font-bold shadow-[0_0_20px_hsl(48,96%,53%,0.2)] transition-all hover:-translate-y-0.5"
+              >
+                <Sparkles className="w-4 h-4" />
+                Unlock with Pro
+              </Link>
+              <Link
+                href="/problems"
+                className="inline-flex h-11 items-center justify-center rounded-md border border-white/10 bg-secondary/50 px-6 text-sm font-semibold transition-all hover:bg-secondary"
+              >
+                Browse free problems
+              </Link>
+            </div>
+            <div className="rounded-xl border border-yellow-500/10 bg-yellow-500/5 p-4 text-left">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <span className="text-yellow-400 font-semibold">Pro is free.</span> Apex Arena is a practice platform — no payment required. Activate instantly on the pricing page.
+              </p>
+            </div>
+          </div>
+        </div>
+      </>
+    );
   }
 
   // ---------- Reusable panes ----------

@@ -5,7 +5,9 @@ import { useUpsertUser } from "@workspace/api-client-react";
 interface UserContextType {
   userId: string;
   username: string;
+  isSubscribed: boolean;
   setUsername: (username: string) => void;
+  setIsSubscribed: (value: boolean) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -13,6 +15,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: ReactNode }) {
   const { user, isLoaded } = useClerkUser();
   const [username, setUsernameState] = useState<string>("");
+  const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
   const upsertUser = useUpsertUser();
 
   const userId = user?.id ?? "";
@@ -31,12 +34,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     setUsernameState(derivedUsername);
 
-    upsertUser.mutate({
-      data: {
-        id: user.id,
-        username: derivedUsername,
+    upsertUser.mutate(
+      {
+        data: {
+          id: user.id,
+          username: derivedUsername,
+        },
       },
-    });
+      {
+        onSuccess: (data) => {
+          setIsSubscribed(data.isSubscribed ?? false);
+        },
+      },
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, user?.id]);
 
@@ -52,7 +62,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <UserContext.Provider value={{ userId, username, setUsername }}>
+    <UserContext.Provider value={{ userId, username, isSubscribed, setUsername, setIsSubscribed }}>
       {children}
     </UserContext.Provider>
   );

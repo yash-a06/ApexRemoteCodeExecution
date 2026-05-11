@@ -12,4 +12,5 @@ export interface UserProfile {
   joinedAt: Date;
   solvedCount: number;
   submissionCount: number;
+  isSubscribed: boolean;
 }

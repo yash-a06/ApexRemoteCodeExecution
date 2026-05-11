@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Code2, Trophy, BookOpen, LogIn, LogOut, User } from "lucide-react";
+import { Code2, Map, BookOpen, LogIn, LogOut, User, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/user-context";
 import { useClerk, useUser as useClerkUser } from "@clerk/react";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 export function Navbar() {
   const [location] = useLocation();
-  const { username } = useUser();
+  const { username, isSubscribed } = useUser();
   const { user, isLoaded } = useClerkUser();
   const { signOut } = useClerk();
 
@@ -15,7 +15,7 @@ export function Navbar() {
 
   const navItems = [
     { href: "/problems", label: "Problems", icon: BookOpen },
-    { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+    { href: "/roadmap", label: "Roadmap", icon: Map },
   ];
 
   return (
@@ -62,6 +62,19 @@ export function Navbar() {
             })}
           </nav>
 
+          {!isSubscribed && (
+            <Link href="/pricing" className="hidden sm:flex">
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 hover:border-yellow-500/50 gap-1.5 font-semibold text-xs"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Go Pro
+              </Button>
+            </Link>
+          )}
+
           <div className="flex items-center pl-2 sm:pl-4 ml-1 sm:ml-2 border-l border-white/[0.08]">
             {!isLoaded ? null : isSignedIn ? (
               <div className="flex items-center gap-2 sm:gap-3">
@@ -74,18 +87,31 @@ export function Navbar() {
                     <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate w-full text-right">
                       {username || user.firstName || "User"}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      Pro
+                    <span className={cn(
+                      "text-[10px]",
+                      isSubscribed ? "text-yellow-400" : "text-muted-foreground"
+                    )}>
+                      {isSubscribed ? "Pro" : "Free"}
                     </span>
                   </div>
                   {user.imageUrl ? (
                     <img
                       src={user.imageUrl}
                       alt={username || "Avatar"}
-                      className="w-8 h-8 rounded-full border border-primary/20 object-cover shrink-0"
+                      className={cn(
+                        "w-8 h-8 rounded-full object-cover shrink-0",
+                        isSubscribed
+                          ? "border-2 border-yellow-500/50"
+                          : "border border-primary/20"
+                      )}
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                    <div className={cn(
+                      "w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0",
+                      isSubscribed
+                        ? "border-2 border-yellow-500/50"
+                        : "border border-primary/20"
+                    )}>
                       {(username || user.firstName || "U")
                         .charAt(0)
                         .toUpperCase()}

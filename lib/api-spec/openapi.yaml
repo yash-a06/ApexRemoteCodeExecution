@@ -253,6 +253,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/PlatformStats"
 
+  /users/{userId}/subscribe:
+    post:
+      operationId: subscribeUser
+      tags: [users]
+      summary: Activate Pro subscription for a user (demo mode - no real payment)
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated user profile with isSubscribed set to true
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
   /stats/leaderboard:
     get:
       operationId: getLeaderboard
@@ -337,6 +356,9 @@ components:
         solved:
           type: boolean
           description: Whether the requesting user has solved it (only present when userId is supplied)
+        isPremium:
+          type: boolean
+          description: Whether this problem requires a Pro subscription
       required: [id, slug, title, category, difficulty, kind, tags, acceptanceRate, totalSubmissions]
 
     TestCase:
@@ -390,6 +412,9 @@ components:
           type: integer
         solved:
           type: boolean
+        isPremium:
+          type: boolean
+          description: Whether this problem requires a Pro subscription
       required:
         - id
         - slug
@@ -566,7 +591,9 @@ components:
           type: integer
         submissionCount:
           type: integer
-      required: [id, username, joinedAt, solvedCount, submissionCount]
+        isSubscribed:
+          type: boolean
+      required: [id, username, joinedAt, solvedCount, submissionCount, isSubscribed]
 
     UpsertUserInput:
       type: object

@@ -51,6 +51,10 @@ export const ListProblemsResponseItem = zod.object({
     .describe(
       "Whether the requesting user has solved it (only present when userId is supplied)",
     ),
+  isPremium: zod
+    .boolean()
+    .optional()
+    .describe("Whether this problem requires a Pro subscription"),
 });
 export const ListProblemsResponse = zod.array(ListProblemsResponseItem);
 
@@ -93,6 +97,10 @@ export const GetProblemResponse = zod.object({
   acceptanceRate: zod.number(),
   totalSubmissions: zod.number(),
   solved: zod.boolean().optional(),
+  isPremium: zod
+    .boolean()
+    .optional()
+    .describe("Whether this problem requires a Pro subscription"),
 });
 
 /**
@@ -124,6 +132,10 @@ export const ListFeaturedProblemsResponseItem = zod.object({
     .describe(
       "Whether the requesting user has solved it (only present when userId is supplied)",
     ),
+  isPremium: zod
+    .boolean()
+    .optional()
+    .describe("Whether this problem requires a Pro subscription"),
 });
 export const ListFeaturedProblemsResponse = zod.array(
   ListFeaturedProblemsResponseItem,
@@ -255,6 +267,7 @@ export const GetUserResponse = zod.object({
   joinedAt: zod.coerce.date(),
   solvedCount: zod.number(),
   submissionCount: zod.number(),
+  isSubscribed: zod.boolean(),
 });
 
 /**
@@ -316,6 +329,7 @@ export const UpsertUserResponse = zod.object({
   joinedAt: zod.coerce.date(),
   solvedCount: zod.number(),
   submissionCount: zod.number(),
+  isSubscribed: zod.boolean(),
 });
 
 /**
@@ -337,6 +351,22 @@ export const GetPlatformStatsResponse = zod.object({
       count: zod.number(),
     }),
   ),
+});
+
+/**
+ * @summary Activate Pro subscription for a user (demo mode - no real payment)
+ */
+export const SubscribeUserParams = zod.object({
+  userId: zod.coerce.string(),
+});
+
+export const SubscribeUserResponse = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  joinedAt: zod.coerce.date(),
+  solvedCount: zod.number(),
+  submissionCount: zod.number(),
+  isSubscribed: zod.boolean(),
 });
 
 /**

@@ -1027,6 +1027,90 @@ export function useGetPlatformStats<
 }
 
 /**
+ * @summary Activate Pro subscription for a user (demo mode - no real payment)
+ */
+export const getSubscribeUserUrl = (userId: string) => {
+  return `/api/users/${userId}/subscribe`;
+};
+
+export const subscribeUser = async (
+  userId: string,
+  options?: RequestInit,
+): Promise<UserProfile> => {
+  return customFetch<UserProfile>(getSubscribeUserUrl(userId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getSubscribeUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeUser>>,
+    TError,
+    { userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof subscribeUser>>,
+  TError,
+  { userId: string },
+  TContext
+> => {
+  const mutationKey = ["subscribeUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof subscribeUser>>,
+    { userId: string }
+  > = (props) => {
+    const { userId } = props ?? {};
+
+    return subscribeUser(userId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubscribeUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof subscribeUser>>
+>;
+
+export type SubscribeUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Activate Pro subscription for a user (demo mode - no real payment)
+ */
+export const useSubscribeUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeUser>>,
+    TError,
+    { userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof subscribeUser>>,
+  TError,
+  { userId: string },
+  TContext
+> => {
+  return useMutation(getSubscribeUserMutationOptions(options));
+};
+
+/**
  * @summary Top users by problems solved
  */
 export const getGetLeaderboardUrl = () => {

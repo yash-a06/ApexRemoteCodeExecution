@@ -1,7 +1,7 @@
 import { PageWrapper } from "@/components/layout/page-wrapper";
 import { Link } from "wouter";
-import { useGetPlatformStats, useListFeaturedProblems, useGetLeaderboard } from "@workspace/api-client-react";
-import { Code2, Zap, Layers, Database, ArrowRight, Users, Activity, Terminal, ChevronRight } from "lucide-react";
+import { useGetPlatformStats, useListFeaturedProblems } from "@workspace/api-client-react";
+import { Code2, Zap, Layers, Database, ArrowRight, Users, Activity, Terminal, Map } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,7 +31,6 @@ function AnimatedNumber({ value }: { value: number }) {
 export default function Home() {
   const { data: stats, isLoading: loadingStats } = useGetPlatformStats();
   const { data: featured, isLoading: loadingFeatured } = useListFeaturedProblems();
-  const { data: leaderboard, isLoading: loadingLeaderboard } = useGetLeaderboard();
 
   return (
     <PageWrapper>
@@ -66,11 +65,12 @@ export default function Home() {
                   Start Coding
                 </Link>
                 <Link
-                  href="/leaderboard"
-                  className="inline-flex h-11 sm:h-12 items-center justify-center rounded-md border border-white/10 bg-secondary/50 backdrop-blur-sm px-6 sm:px-8 text-sm font-semibold shadow-sm transition-all hover:bg-secondary hover:border-white/20 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  data-testid="link-view-leaderboard"
+                  href="/roadmap"
+                  className="inline-flex h-11 sm:h-12 items-center justify-center gap-2 rounded-md border border-white/10 bg-secondary/50 backdrop-blur-sm px-6 sm:px-8 text-sm font-semibold shadow-sm transition-all hover:bg-secondary hover:border-white/20 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  data-testid="link-view-roadmap"
                 >
-                  View Leaderboard
+                  <Map className="w-4 h-4" />
+                  View Roadmap
                 </Link>
               </div>
 
@@ -171,10 +171,9 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Featured + Leaderboard mini */}
-        <section className="grid lg:grid-cols-3 gap-8 lg:gap-12">
-          {/* Featured problems */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6 min-w-0">
+        {/* Featured problems */}
+        <section>
+          <div className="space-y-4 sm:space-y-6 min-w-0">
             {/* Section header */}
             <div className="flex items-center justify-between gap-3 min-w-0">
               <h2 className="text-xl sm:text-3xl font-bold tracking-tight font-display shrink-0">Featured Challenges</h2>
@@ -246,48 +245,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Mini leaderboard */}
-          <div className="space-y-4 sm:space-y-6 min-w-0">
-            {/* Section header */}
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <h2 className="text-xl sm:text-3xl font-bold tracking-tight font-display shrink-0">Top Devs</h2>
-              <Link href="/leaderboard" className="text-xs sm:text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1 group shrink-0">
-                Full board <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-
-            <Card className="border-white/5 bg-card/50 backdrop-blur-sm overflow-hidden">
-              <div className="h-1 bg-gradient-to-r from-yellow-500 via-gray-400 to-amber-700" />
-              <CardContent className="p-0">
-                <div className="divide-y divide-white/5">
-                  {loadingLeaderboard
-                    ? Array.from({ length: 5 }).map((_, i) => (
-                        <Skeleton key={i} className="h-14 w-full rounded-none bg-transparent" />
-                      ))
-                    : leaderboard?.slice(0, 5).map((user, idx) => (
-                        <div key={user.userId} className="flex items-center justify-between px-4 py-3.5 hover:bg-secondary/50 transition-colors group">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className={cn(
-                              "w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0",
-                              idx === 0 ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
-                                : idx === 1 ? "bg-gray-400/10 text-gray-400 border border-gray-400/20"
-                                : idx === 2 ? "bg-amber-700/10 text-amber-700 border border-amber-700/20"
-                                : "bg-muted/50 text-muted-foreground border border-white/5",
-                            )}>
-                              {idx + 1}
-                            </div>
-                            <div className="font-medium group-hover:text-primary transition-colors text-sm truncate min-w-0">{user.username}</div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-sm font-mono font-bold text-foreground">{user.solvedCount}</div>
-                            <div className="text-[10px] text-muted-foreground uppercase tracking-widest">Solved</div>
-                          </div>
-                        </div>
-                      ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </section>
       </div>
     </PageWrapper>

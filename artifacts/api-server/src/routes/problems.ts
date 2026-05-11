@@ -80,6 +80,7 @@ router.get("/problems", async (req, res): Promise<void> => {
       acceptanceRate: agg.total > 0 ? Math.round((agg.accepted / agg.total) * 1000) / 10 : 0,
       totalSubmissions: agg.total,
       solved: userId ? solved.has(p.slug) : undefined,
+      isPremium: p.isPremium,
     };
   });
 
@@ -107,6 +108,7 @@ router.get("/problems/featured", async (_req, res): Promise<void> => {
       tags: p.tags,
       acceptanceRate: agg.total > 0 ? Math.round((agg.accepted / agg.total) * 1000) / 10 : 0,
       totalSubmissions: agg.total,
+      isPremium: p.isPremium,
     };
   });
 
@@ -173,6 +175,7 @@ router.get("/problems/:slug", async (req, res): Promise<void> => {
       acceptanceRate:
         agg.total > 0 ? Math.round((agg.accepted / agg.total) * 1000) / 10 : 0,
       totalSubmissions: agg.total,
+      isPremium: problem.isPremium,
     }),
   );
 });

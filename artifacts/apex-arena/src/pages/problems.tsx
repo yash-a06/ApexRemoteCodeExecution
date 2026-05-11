@@ -5,7 +5,7 @@ import { PageWrapper } from "@/components/layout/page-wrapper";
 import { useUser } from "@/lib/user-context";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, CheckCircle2, Filter, Zap, Activity, Layers, Database, Code2, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, CheckCircle2, Filter, Zap, Activity, Layers, Database, Code2, X, ChevronDown, ChevronUp, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
@@ -338,9 +338,16 @@ export default function Problems() {
 
                             {/* Title + meta */}
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-sm sm:text-base font-display group-hover:text-primary transition-colors truncate leading-snug mb-1">
-                                {p.title}
-                              </h3>
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-sm sm:text-base font-display group-hover:text-primary transition-colors truncate leading-snug">
+                                  {p.title}
+                                </h3>
+                                {p.isPremium && (
+                                  <span className="inline-flex items-center gap-0.5 shrink-0 text-[9px] font-bold uppercase tracking-wider bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-1.5 py-0.5 rounded-full">
+                                    <Sparkles className="w-2.5 h-2.5" />Pro
+                                  </span>
+                                )}
+                              </div>
                               <div className="flex items-center gap-2 flex-wrap">
                                 {/* Difficulty */}
                                 <span

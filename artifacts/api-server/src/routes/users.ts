@@ -11,6 +11,7 @@ import {
   GetUserStatsResponse,
   UpsertUserResponse,
   UpsertUserBody,
+  SubscribeUserResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -22,6 +23,7 @@ async function ensureUser(id: string, fallbackUsername?: string): Promise<{
   id: string;
   username: string;
   joinedAt: Date;
+  isSubscribed: boolean;
 }> {
   const [existing] = await db
     .select()
@@ -84,6 +86,7 @@ router.get("/users/:userId", async (req, res): Promise<void> => {
       joinedAt: user.joinedAt,
       solvedCount: solvedSlugs.size,
       submissionCount: totalSubmissions,
+      isSubscribed: user.isSubscribed,
     }),
   );
 });
@@ -130,6 +133,41 @@ router.post("/users/upsert", async (req, res): Promise<void> => {
       joinedAt: user.joinedAt,
       solvedCount: solvedSlugs.size,
       submissionCount: totalSubmissions,
+      isSubscribed: user.isSubscribed,
+    }),
+  );
+});
+
+router.post("/users/:userId/subscribe", async (req, res): Promise<void> => {
+  const userId = Array.isArray(req.params.userId)
+    ? req.params.userId[0]
+    : req.params.userId;
+  if (!userId) {
+    res.status(400).json({ error: "userId required" });
+    return;
+  }
+
+  const [user] = await db
+    .update(usersTable)
+    .set({ isSubscribed: true })
+    .where(eq(usersTable.id, userId))
+    .returning();
+
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const { solvedSlugs, totalSubmissions } = await userAggregates(userId);
+
+  res.json(
+    SubscribeUserResponse.parse({
+      id: user.id,
+      username: user.username,
+      joinedAt: user.joinedAt,
+      solvedCount: solvedSlugs.size,
+      submissionCount: totalSubmissions,
+      isSubscribed: user.isSubscribed,
     }),
   );
 });

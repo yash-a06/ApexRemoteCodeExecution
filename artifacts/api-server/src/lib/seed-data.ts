@@ -12,6 +12,7 @@ export interface SeedProblem {
   starterCode: string;
   tests: TestSpec[];
   featuredOrder?: number;
+  isPremium?: boolean;
 }
 
 const t = (name: string, description: string, hidden: boolean): TestSpec => ({
@@ -99,6 +100,7 @@ Write an **after update** trigger on Account that:
     title: "Prevent Deleting a Closed Won Opportunity",
     category: "trigger",
     difficulty: "medium",
+    isPremium: true,
     kind: "trigger",
     tags: ["validation", "before-delete", "security"],
     statement: `Write a trigger that prevents users from deleting Opportunities that are in the **Closed Won** stage. Use \`addError\` to block the delete with a clear message.
@@ -127,6 +129,7 @@ Requirements:
     title: "Roll Up Total Revenue from Opportunities to Account",
     category: "trigger",
     difficulty: "medium",
+    isPremium: true,
     kind: "trigger",
     tags: ["bulkification", "rollup", "after-insert", "after-update"],
     statement: `Maintain a custom field \`Total_Revenue__c\` on Account equal to the sum of all related Opportunity \`Amount\` values.
@@ -257,6 +260,7 @@ Requirements:
     title: "Schedulable Apex: Daily Aggregate Report",
     category: "async_apex",
     difficulty: "hard",
+    isPremium: true,
     kind: "schedulable",
     tags: ["schedulable", "aggregate", "soql"],
     statement: `Write a Schedulable Apex class \`DailyOpportunityReport\` that runs once a day. In its \`execute\` it should run an **aggregate SOQL** (using SUM, COUNT, or GROUP BY) to compute today's opportunity totals, then store them somewhere (you can use System.debug for the simulated environment).
@@ -373,6 +377,7 @@ Requirements:
     title: "Wrapper Class for Visualforce Table",
     category: "classes",
     difficulty: "medium",
+    isPremium: true,
     kind: "class",
     tags: ["wrapper", "controller", "ui"],
     statement: `Build a wrapper class \`AccountWrapper\` and a controller method \`getWrappedAccounts\` that returns a \`List<AccountWrapper>\`. The wrapper must expose at least 2 public properties — for example, the Account record itself and a \`Boolean isSelected\` flag.`,
@@ -402,6 +407,7 @@ Requirements:
     title: "Interface: Pluggable Payment Processor",
     category: "classes",
     difficulty: "hard",
+    isPremium: true,
     kind: "class",
     tags: ["interface", "polymorphism", "design-pattern"],
     statement: `Define an interface \`IPaymentProcessor\` with a method \`processPayment(Decimal amount)\`. Then provide at least one concrete class (e.g. \`StripePaymentProcessor\`) that **implements** the interface.`,
@@ -477,6 +483,7 @@ public class StripePaymentProcessor implements IPaymentProcessor {
     title: "SOQL: Aggregate Opportunity Pipeline by Stage",
     category: "soql",
     difficulty: "medium",
+    isPremium: true,
     kind: "soql",
     tags: ["aggregate", "group-by", "sum", "count"],
     statement: `Write a query that returns the **count of opportunities** and the **sum of their Amount** grouped by \`StageName\`.`,
@@ -502,6 +509,7 @@ public class StripePaymentProcessor implements IPaymentProcessor {
     title: "SOQL: Safe Dynamic Query (Prevent Injection)",
     category: "soql",
     difficulty: "hard",
+    isPremium: true,
     kind: "soql",
     tags: ["security", "dynamic-soql", "injection", "fls"],
     statement: `Write a method that performs a **dynamic SOQL** query against Account based on a user-supplied search string. The query must:
@@ -554,6 +562,7 @@ public class StripePaymentProcessor implements IPaymentProcessor {
     title: "Trigger Handler Framework",
     category: "classes",
     difficulty: "hard",
+    isPremium: true,
     kind: "class",
     tags: ["pattern", "handler", "recursion"],
     statement: `Triggers should be one-line: they delegate to a Handler class. Build a class \`AccountTriggerHandler\` that:
