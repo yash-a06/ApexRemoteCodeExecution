@@ -10,7 +10,8 @@
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
     "types": ["node", "vite/client"],
-    "sourceMap": true,
+    "sourceMap": false,
+    "inlineSourceMap": false,
     "paths": {
       "@/*": ["./src/*"]
     }
