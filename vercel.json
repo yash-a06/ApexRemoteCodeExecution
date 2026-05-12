@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm --filter @workspace/apex-arena run build",
+  "buildCommand": "pnpm run vercel-build",
   "outputDirectory": "dist",
   "installCommand": "pnpm install",
   "rewrites": [
