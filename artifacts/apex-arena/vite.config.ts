@@ -54,6 +54,8 @@ export default defineConfig({
     fs: {
       strict: true,
     },
+    middlewareMode: false,
+    sourcemap: false,
   },
   preview: {
     port,
