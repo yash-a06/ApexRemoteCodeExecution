@@ -1,0 +1,11 @@
+{
+  "buildCommand": "pnpm --filter @workspace/apex-arena run build",
+  "outputDirectory": "artifacts/apex-arena/dist/public",
+  "installCommand": "pnpm install",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "env": {
+    "BASE_PATH": "/"
+  }
+}
