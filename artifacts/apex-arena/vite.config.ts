@@ -38,6 +38,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "../../dist"),
     emptyOutDir: true,
+    sourcemap: false,
     rollupOptions: {
       onwarn(warning, warn) {
         if (warning.code === "SOURCEMAP_ERROR") return;
