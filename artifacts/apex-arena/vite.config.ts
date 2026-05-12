@@ -55,11 +55,11 @@ export default defineConfig({
       strict: true,
     },
     middlewareMode: false,
-    sourcemap: false,
   },
   preview: {
     port,
     host: "0.0.0.0",
     allowedHosts: true,
   },
+  logLevel: 'error',
 });
